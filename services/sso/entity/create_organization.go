@@ -3,11 +3,11 @@ package entity
 type (
 	CreateOrganizationReq struct {
 		Name      string
-		Users     []User
-		Positions []Position
+		Users     []*User
+		Positions []*Position
 	}
 
 	CreateOrganizationResp struct {
-		Organization Organization
+		Organization *Organization
 	}
 )

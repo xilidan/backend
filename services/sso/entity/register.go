@@ -5,6 +5,7 @@ type (
 		Email           string
 		Name            string
 		Surname         *string
+		PositionID      int
 		Password        string
 		PasswordConfirm string
 	}

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/google/uuid"
 	"github.com/xilidan/backend/pkg/logger"
 	"github.com/xilidan/backend/services/sso/entity"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/user"
@@ -17,6 +18,7 @@ func (s *storage) CreateUser(ctx context.Context, req *entity.RegitserRequest) (
 		SetNillableSurname(req.Surname).
 		SetEmail(req.Email).
 		SetPasswordHash(req.Password).
+		SetPositionID(req.PositionID).
 		Save(ctx)
 	if err != nil {
 		log.Error("failed to create user", "error", err)
@@ -27,7 +29,7 @@ func (s *storage) CreateUser(ctx context.Context, req *entity.RegitserRequest) (
 	return entity.MakeUserEntToEntity(entUser), nil
 }
 
-func (s *storage) GetUserByEmail(ctx context.Context, email string) (*entity.User, error){
+func (s *storage) GetUserByEmail(ctx context.Context, email string) (*entity.User, error) {
 	log := logger.FromContext(ctx)
 	entUser, err := s.User.Query().
 		Where(
@@ -44,5 +46,23 @@ func (s *storage) GetUserByEmail(ctx context.Context, email string) (*entity.Use
 }
 
 func (s *storage) GetUserByID(ctx context.Context, id string) (*entity.User, error) {
-	return nil, nil
+	log := logger.FromContext(ctx)
+	uuid, err := uuid.Parse(id)
+	if err != nil {
+		log.Error("failed to genereate uuid", "error", err)
+		return nil, fmt.Errorf("failed to generate uuid: %w", err)
+	}
+
+	entUser, err := s.User.Query().
+		Where(
+			user.ID(uuid),
+		).First(ctx)
+	if err != nil {
+		log.Error("failed to get user by id", "error", err)
+		return nil, fmt.Errorf("failed to get user by id: %w", err)
+	}
+
+	log.Debug("user", "user", entUser)
+
+	return entity.MakeUserEntToEntity(entUser), nil
 }

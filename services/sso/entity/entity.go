@@ -75,11 +75,20 @@ func MakePositionsArrayEntToEntity(positions []*ent.Position) []*Position {
 	return postionsEntity
 }
 
-func MakeOrganizationEntToEntity(organization *ent.Organization, users []*ent.User, positions []*ent.Position) *Organization {
+func MakeOrganizationEntToEntity(organization *ent.Organization) *Organization {
+	users := []*User{}
+	if organization.Edges.Users != nil {
+		for _, orgUser := range organization.Edges.Users {
+			if orgUser.Edges.User != nil {
+				users = append(users, MakeUserEntToEntity(orgUser.Edges.User))
+			}
+		}
+	}
+
 	return &Organization{
 		ID:        organization.ID.String(),
 		Name:      organization.Name,
-		Positions: MakePositionsArrayEntToEntity(positions),
-		Users:     MakeUsersArrayEntToEntity(users),
+		Positions: []*Position{},
+		Users:     users,
 	}
 }
