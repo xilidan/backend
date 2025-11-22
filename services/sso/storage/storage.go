@@ -21,12 +21,3 @@ func New(client *ent.Client) Storage {
 		Client: client,
 	}
 }
-
-func (s *storage) CreateUser(ctx context.Context) {
-}
-
-func (s *storage) GetUserByEmail(ctx context.Context, email string) {
-}
-
-func (s *storage) GetUserByID(ctx context.Context, id string) {
-}
