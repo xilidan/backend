@@ -1,0 +1,110 @@
+syntax = "proto3";
+
+package sso;
+
+option go_package = "specs/proto/sso";
+
+service SsoService {
+  rpc HealthCheck (HealthCheckReq) returns (HealthCheckResp);
+  rpc Register (RegisterReq) returns (RegisterResp);
+  rpc Login (LoginReq) returns (LoginResp);
+  rpc GetUser (GetUserReq) returns (GetUserResp);
+  rpc CreateOrganization (CreateOrganizationReq) returns (CreateOrganizationResp);
+  rpc GetOrganization (GetOrganizationReq) returns (GetOrganizationResp);
+  rpc GetPositions (GetPositionsReq) returns (GetPositionsResp);
+  rpc UpdateOrganization (UpdateOrganizationReq) returns (UpdateOrganizationResp);
+}
+
+message HealthCheckReq {}
+
+message HealthCheckResp {
+  bool status = 1;
+}
+
+message User {
+  string id = 1;
+  string name = 2;
+  optional string surname = 3;
+  string email = 4;
+  int64 position_id = 5;
+  string job = 6;
+}
+
+message Position {
+  int64 id = 1;
+  string name = 2;
+  bool is_reviewer = 3;
+}
+
+message Organization {
+  string id = 1;
+  string name = 2;
+  repeated Position positions = 3;
+  repeated User users = 4;
+}
+
+message RegisterReq {
+  string name = 1;
+  optional string surname = 2;
+  string email = 3;
+  string password = 4;
+  string password_confirm = 5;
+}
+
+message RegisterResp {
+  string token = 1;
+}
+
+message LoginReq {
+  string email = 1;
+  string password = 2;
+}
+
+message LoginResp {
+  string token = 1;
+}
+
+message GetUserReq {
+  string user_id = 1;
+}
+
+message GetUserResp {
+  User user = 1;
+}
+
+message CreateOrganizationReq {
+  string name = 1;
+  repeated Position positions = 2;
+  repeated User users = 3;
+}
+
+message CreateOrganizationResp {
+  Organization organization = 1;
+}
+
+message GetOrganizationReq {
+  string id = 1;
+}
+
+message GetOrganizationResp {
+  Organization organization = 1;
+}
+
+message GetPositionsReq {
+  string organization_id = 1;
+}
+
+message GetPositionsResp {
+  repeated Position positions = 2;
+}
+
+message UpdateOrganizationReq {
+  string id = 1;
+  string name = 2;
+  repeated Position positions = 3;
+  repeated User users = 4;
+}
+
+message UpdateOrganizationResp {
+  Organization organization = 1;
+}
