@@ -1,0 +1,11 @@
+services:
+  web-gateway:
+    build:
+      context: .
+      dockerfile: ./deploy/web/Dockerfile
+    container_name: web-gateway
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    environment:
+      - ENV=prod

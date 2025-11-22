@@ -19,4 +19,6 @@ func main() {
 	})
 
 	ctx := logger.WithContext(context.Background(), log)
+
+	_ = ctx
 }
