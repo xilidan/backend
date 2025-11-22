@@ -1,0 +1,59 @@
+# macOS
+.DS_Store
+
+# Windows cache files
+Thumbs.db
+Thumbs.db:encryptable
+ehthumbs.db
+
+# JetBrains
+.idea
+.idea/
+.run
+.emacs.go.project.el
+meroving.iml
+template.iml
+
+# VScode
+.vscode/
+.fleet/
+debug
+__debug_bin
+
+# mise - manage go versions
+.tool-versions
+
+# Project binaries
+build/
+cmd/*/debug
+cmd/*/main
+bin
+mrv
+*.exe
+
+# Env
+.env*
+
+# Output
+coverage.out
+*.test
+*.prof
+
+# vendor
+vendor/
+
+# other
+data/
+/probs/
+/venv/
+
+# Go files after sed
+*.go-e
+
+# Certificates
+*.pem
+*.crt
+
+deploy/app-ports.gen.env
+
+.gomodcache/
