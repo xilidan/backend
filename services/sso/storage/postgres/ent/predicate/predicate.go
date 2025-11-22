@@ -6,5 +6,14 @@ import (
 	"entgo.io/ent/dialect/sql"
 )
 
+// Organization is the predicate function for organization builders.
+type Organization func(*sql.Selector)
+
+// OrganizationUsers is the predicate function for organizationusers builders.
+type OrganizationUsers func(*sql.Selector)
+
+// Position is the predicate function for position builders.
+type Position func(*sql.Selector)
+
 // User is the predicate function for user builders.
 type User func(*sql.Selector)

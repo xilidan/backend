@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/predicate"
 )
@@ -68,6 +69,11 @@ func Name(v string) predicate.User {
 // Surname applies equality check predicate on the "surname" field. It's identical to SurnameEQ.
 func Surname(v string) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldSurname, v))
+}
+
+// Job applies equality check predicate on the "job" field. It's identical to JobEQ.
+func Job(v string) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldJob, v))
 }
 
 // PasswordHash applies equality check predicate on the "password_hash" field. It's identical to PasswordHashEQ.
@@ -290,6 +296,81 @@ func SurnameContainsFold(v string) predicate.User {
 	return predicate.User(sql.FieldContainsFold(FieldSurname, v))
 }
 
+// JobEQ applies the EQ predicate on the "job" field.
+func JobEQ(v string) predicate.User {
+	return predicate.User(sql.FieldEQ(FieldJob, v))
+}
+
+// JobNEQ applies the NEQ predicate on the "job" field.
+func JobNEQ(v string) predicate.User {
+	return predicate.User(sql.FieldNEQ(FieldJob, v))
+}
+
+// JobIn applies the In predicate on the "job" field.
+func JobIn(vs ...string) predicate.User {
+	return predicate.User(sql.FieldIn(FieldJob, vs...))
+}
+
+// JobNotIn applies the NotIn predicate on the "job" field.
+func JobNotIn(vs ...string) predicate.User {
+	return predicate.User(sql.FieldNotIn(FieldJob, vs...))
+}
+
+// JobGT applies the GT predicate on the "job" field.
+func JobGT(v string) predicate.User {
+	return predicate.User(sql.FieldGT(FieldJob, v))
+}
+
+// JobGTE applies the GTE predicate on the "job" field.
+func JobGTE(v string) predicate.User {
+	return predicate.User(sql.FieldGTE(FieldJob, v))
+}
+
+// JobLT applies the LT predicate on the "job" field.
+func JobLT(v string) predicate.User {
+	return predicate.User(sql.FieldLT(FieldJob, v))
+}
+
+// JobLTE applies the LTE predicate on the "job" field.
+func JobLTE(v string) predicate.User {
+	return predicate.User(sql.FieldLTE(FieldJob, v))
+}
+
+// JobContains applies the Contains predicate on the "job" field.
+func JobContains(v string) predicate.User {
+	return predicate.User(sql.FieldContains(FieldJob, v))
+}
+
+// JobHasPrefix applies the HasPrefix predicate on the "job" field.
+func JobHasPrefix(v string) predicate.User {
+	return predicate.User(sql.FieldHasPrefix(FieldJob, v))
+}
+
+// JobHasSuffix applies the HasSuffix predicate on the "job" field.
+func JobHasSuffix(v string) predicate.User {
+	return predicate.User(sql.FieldHasSuffix(FieldJob, v))
+}
+
+// JobIsNil applies the IsNil predicate on the "job" field.
+func JobIsNil() predicate.User {
+	return predicate.User(sql.FieldIsNull(FieldJob))
+}
+
+// JobNotNil applies the NotNil predicate on the "job" field.
+func JobNotNil() predicate.User {
+	return predicate.User(sql.FieldNotNull(FieldJob))
+}
+
+// JobEqualFold applies the EqualFold predicate on the "job" field.
+func JobEqualFold(v string) predicate.User {
+	return predicate.User(sql.FieldEqualFold(FieldJob, v))
+}
+
+// JobContainsFold applies the ContainsFold predicate on the "job" field.
+func JobContainsFold(v string) predicate.User {
+	return predicate.User(sql.FieldContainsFold(FieldJob, v))
+}
+
 // PasswordHashEQ applies the EQ predicate on the "password_hash" field.
 func PasswordHashEQ(v string) predicate.User {
 	return predicate.User(sql.FieldEQ(FieldPasswordHash, v))
@@ -433,6 +514,52 @@ func UpdatedAtLT(v time.Time) predicate.User {
 // UpdatedAtLTE applies the LTE predicate on the "updated_at" field.
 func UpdatedAtLTE(v time.Time) predicate.User {
 	return predicate.User(sql.FieldLTE(FieldUpdatedAt, v))
+}
+
+// HasOrganizations applies the HasEdge predicate on the "organizations" edge.
+func HasOrganizations() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.O2M, false, OrganizationsTable, OrganizationsColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasOrganizationsWith applies the HasEdge predicate on the "organizations" edge with a given conditions (other predicates).
+func HasOrganizationsWith(preds ...predicate.OrganizationUsers) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newOrganizationsStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
+}
+
+// HasPosition applies the HasEdge predicate on the "position" edge.
+func HasPosition() predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := sqlgraph.NewStep(
+			sqlgraph.From(Table, FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, PositionTable, PositionColumn),
+		)
+		sqlgraph.HasNeighbors(s, step)
+	})
+}
+
+// HasPositionWith applies the HasEdge predicate on the "position" edge with a given conditions (other predicates).
+func HasPositionWith(preds ...predicate.Position) predicate.User {
+	return predicate.User(func(s *sql.Selector) {
+		step := newPositionStep()
+		sqlgraph.HasNeighborsWith(s, step, func(s *sql.Selector) {
+			for _, p := range preds {
+				p(s)
+			}
+		})
+	})
 }
 
 // And groups predicates with the AND operator between them.

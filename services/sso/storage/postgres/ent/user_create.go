@@ -11,6 +11,8 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
+	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organizationusers"
+	"github.com/xilidan/backend/services/sso/storage/postgres/ent/position"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/user"
 )
 
@@ -43,6 +45,20 @@ func (_c *UserCreate) SetSurname(v string) *UserCreate {
 func (_c *UserCreate) SetNillableSurname(v *string) *UserCreate {
 	if v != nil {
 		_c.SetSurname(*v)
+	}
+	return _c
+}
+
+// SetJob sets the "job" field.
+func (_c *UserCreate) SetJob(v string) *UserCreate {
+	_c.mutation.SetJob(v)
+	return _c
+}
+
+// SetNillableJob sets the "job" field if the given value is not nil.
+func (_c *UserCreate) SetNillableJob(v *string) *UserCreate {
+	if v != nil {
+		_c.SetJob(*v)
 	}
 	return _c
 }
@@ -93,6 +109,40 @@ func (_c *UserCreate) SetNillableID(v *uuid.UUID) *UserCreate {
 		_c.SetID(*v)
 	}
 	return _c
+}
+
+// AddOrganizationIDs adds the "organizations" edge to the OrganizationUsers entity by IDs.
+func (_c *UserCreate) AddOrganizationIDs(ids ...uuid.UUID) *UserCreate {
+	_c.mutation.AddOrganizationIDs(ids...)
+	return _c
+}
+
+// AddOrganizations adds the "organizations" edges to the OrganizationUsers entity.
+func (_c *UserCreate) AddOrganizations(v ...*OrganizationUsers) *UserCreate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _c.AddOrganizationIDs(ids...)
+}
+
+// SetPositionID sets the "position" edge to the Position entity by ID.
+func (_c *UserCreate) SetPositionID(id int) *UserCreate {
+	_c.mutation.SetPositionID(id)
+	return _c
+}
+
+// SetNillablePositionID sets the "position" edge to the Position entity by ID if the given value is not nil.
+func (_c *UserCreate) SetNillablePositionID(id *int) *UserCreate {
+	if id != nil {
+		_c = _c.SetPositionID(*id)
+	}
+	return _c
+}
+
+// SetPosition sets the "position" edge to the Position entity.
+func (_c *UserCreate) SetPosition(v *Position) *UserCreate {
+	return _c.SetPositionID(v.ID)
 }
 
 // Mutation returns the UserMutation object of the builder.
@@ -208,6 +258,10 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 		_spec.SetField(user.FieldSurname, field.TypeString, value)
 		_node.Surname = &value
 	}
+	if value, ok := _c.mutation.Job(); ok {
+		_spec.SetField(user.FieldJob, field.TypeString, value)
+		_node.Job = &value
+	}
 	if value, ok := _c.mutation.PasswordHash(); ok {
 		_spec.SetField(user.FieldPasswordHash, field.TypeString, value)
 		_node.PasswordHash = value
@@ -219,6 +273,39 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.UpdatedAt(); ok {
 		_spec.SetField(user.FieldUpdatedAt, field.TypeTime, value)
 		_node.UpdatedAt = value
+	}
+	if nodes := _c.mutation.OrganizationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OrganizationsTable,
+			Columns: []string{user.OrganizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationusers.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges = append(_spec.Edges, edge)
+	}
+	if nodes := _c.mutation.PositionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   user.PositionTable,
+			Columns: []string{user.PositionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(position.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_node.user_position = &nodes[0]
+		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
 }

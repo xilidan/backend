@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/google/uuid"
 )
 
@@ -20,14 +21,34 @@ const (
 	FieldName = "name"
 	// FieldSurname holds the string denoting the surname field in the database.
 	FieldSurname = "surname"
+	// FieldJob holds the string denoting the job field in the database.
+	FieldJob = "job"
 	// FieldPasswordHash holds the string denoting the password_hash field in the database.
 	FieldPasswordHash = "password_hash"
 	// FieldCreatedAt holds the string denoting the created_at field in the database.
 	FieldCreatedAt = "created_at"
 	// FieldUpdatedAt holds the string denoting the updated_at field in the database.
 	FieldUpdatedAt = "updated_at"
+	// EdgeOrganizations holds the string denoting the organizations edge name in mutations.
+	EdgeOrganizations = "organizations"
+	// EdgePosition holds the string denoting the position edge name in mutations.
+	EdgePosition = "position"
 	// Table holds the table name of the user in the database.
 	Table = "users"
+	// OrganizationsTable is the table that holds the organizations relation/edge.
+	OrganizationsTable = "organization_users"
+	// OrganizationsInverseTable is the table name for the OrganizationUsers entity.
+	// It exists in this package in order to avoid circular dependency with the "organizationusers" package.
+	OrganizationsInverseTable = "organization_users"
+	// OrganizationsColumn is the table column denoting the organizations relation/edge.
+	OrganizationsColumn = "user_organizations"
+	// PositionTable is the table that holds the position relation/edge.
+	PositionTable = "users"
+	// PositionInverseTable is the table name for the Position entity.
+	// It exists in this package in order to avoid circular dependency with the "position" package.
+	PositionInverseTable = "positions"
+	// PositionColumn is the table column denoting the position relation/edge.
+	PositionColumn = "user_position"
 )
 
 // Columns holds all SQL columns for user fields.
@@ -36,15 +57,27 @@ var Columns = []string{
 	FieldEmail,
 	FieldName,
 	FieldSurname,
+	FieldJob,
 	FieldPasswordHash,
 	FieldCreatedAt,
 	FieldUpdatedAt,
+}
+
+// ForeignKeys holds the SQL foreign-keys that are owned by the "users"
+// table and are not defined as standalone fields in the schema.
+var ForeignKeys = []string{
+	"user_position",
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
 	for i := range Columns {
 		if column == Columns[i] {
+			return true
+		}
+	}
+	for i := range ForeignKeys {
+		if column == ForeignKeys[i] {
 			return true
 		}
 	}
@@ -83,6 +116,11 @@ func BySurname(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldSurname, opts...).ToFunc()
 }
 
+// ByJob orders the results by the job field.
+func ByJob(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldJob, opts...).ToFunc()
+}
+
 // ByPasswordHash orders the results by the password_hash field.
 func ByPasswordHash(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldPasswordHash, opts...).ToFunc()
@@ -96,4 +134,39 @@ func ByCreatedAt(opts ...sql.OrderTermOption) OrderOption {
 // ByUpdatedAt orders the results by the updated_at field.
 func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
+}
+
+// ByOrganizationsCount orders the results by organizations count.
+func ByOrganizationsCount(opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborsCount(s, newOrganizationsStep(), opts...)
+	}
+}
+
+// ByOrganizations orders the results by organizations terms.
+func ByOrganizations(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newOrganizationsStep(), append([]sql.OrderTerm{term}, terms...)...)
+	}
+}
+
+// ByPositionField orders the results by position field.
+func ByPositionField(field string, opts ...sql.OrderTermOption) OrderOption {
+	return func(s *sql.Selector) {
+		sqlgraph.OrderByNeighborTerms(s, newPositionStep(), sql.OrderByField(field, opts...))
+	}
+}
+func newOrganizationsStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(OrganizationsInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.O2M, false, OrganizationsTable, OrganizationsColumn),
+	)
+}
+func newPositionStep() *sqlgraph.Step {
+	return sqlgraph.NewStep(
+		sqlgraph.From(Table, FieldID),
+		sqlgraph.To(PositionInverseTable, FieldID),
+		sqlgraph.Edge(sqlgraph.M2O, false, PositionTable, PositionColumn),
+	)
 }

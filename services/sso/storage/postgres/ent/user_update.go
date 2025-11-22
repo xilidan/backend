@@ -11,6 +11,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
+	"github.com/google/uuid"
+	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organizationusers"
+	"github.com/xilidan/backend/services/sso/storage/postgres/ent/position"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/predicate"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/user"
 )
@@ -76,6 +79,26 @@ func (_u *UserUpdate) ClearSurname() *UserUpdate {
 	return _u
 }
 
+// SetJob sets the "job" field.
+func (_u *UserUpdate) SetJob(v string) *UserUpdate {
+	_u.mutation.SetJob(v)
+	return _u
+}
+
+// SetNillableJob sets the "job" field if the given value is not nil.
+func (_u *UserUpdate) SetNillableJob(v *string) *UserUpdate {
+	if v != nil {
+		_u.SetJob(*v)
+	}
+	return _u
+}
+
+// ClearJob clears the value of the "job" field.
+func (_u *UserUpdate) ClearJob() *UserUpdate {
+	_u.mutation.ClearJob()
+	return _u
+}
+
 // SetPasswordHash sets the "password_hash" field.
 func (_u *UserUpdate) SetPasswordHash(v string) *UserUpdate {
 	_u.mutation.SetPasswordHash(v)
@@ -118,9 +141,70 @@ func (_u *UserUpdate) SetNillableUpdatedAt(v *time.Time) *UserUpdate {
 	return _u
 }
 
+// AddOrganizationIDs adds the "organizations" edge to the OrganizationUsers entity by IDs.
+func (_u *UserUpdate) AddOrganizationIDs(ids ...uuid.UUID) *UserUpdate {
+	_u.mutation.AddOrganizationIDs(ids...)
+	return _u
+}
+
+// AddOrganizations adds the "organizations" edges to the OrganizationUsers entity.
+func (_u *UserUpdate) AddOrganizations(v ...*OrganizationUsers) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddOrganizationIDs(ids...)
+}
+
+// SetPositionID sets the "position" edge to the Position entity by ID.
+func (_u *UserUpdate) SetPositionID(id int) *UserUpdate {
+	_u.mutation.SetPositionID(id)
+	return _u
+}
+
+// SetNillablePositionID sets the "position" edge to the Position entity by ID if the given value is not nil.
+func (_u *UserUpdate) SetNillablePositionID(id *int) *UserUpdate {
+	if id != nil {
+		_u = _u.SetPositionID(*id)
+	}
+	return _u
+}
+
+// SetPosition sets the "position" edge to the Position entity.
+func (_u *UserUpdate) SetPosition(v *Position) *UserUpdate {
+	return _u.SetPositionID(v.ID)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdate) Mutation() *UserMutation {
 	return _u.mutation
+}
+
+// ClearOrganizations clears all "organizations" edges to the OrganizationUsers entity.
+func (_u *UserUpdate) ClearOrganizations() *UserUpdate {
+	_u.mutation.ClearOrganizations()
+	return _u
+}
+
+// RemoveOrganizationIDs removes the "organizations" edge to OrganizationUsers entities by IDs.
+func (_u *UserUpdate) RemoveOrganizationIDs(ids ...uuid.UUID) *UserUpdate {
+	_u.mutation.RemoveOrganizationIDs(ids...)
+	return _u
+}
+
+// RemoveOrganizations removes "organizations" edges to OrganizationUsers entities.
+func (_u *UserUpdate) RemoveOrganizations(v ...*OrganizationUsers) *UserUpdate {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveOrganizationIDs(ids...)
+}
+
+// ClearPosition clears the "position" edge to the Position entity.
+func (_u *UserUpdate) ClearPosition() *UserUpdate {
+	_u.mutation.ClearPosition()
+	return _u
 }
 
 // Save executes the query and returns the number of nodes affected by the update operation.
@@ -171,6 +255,12 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	if _u.mutation.SurnameCleared() {
 		_spec.ClearField(user.FieldSurname, field.TypeString)
 	}
+	if value, ok := _u.mutation.Job(); ok {
+		_spec.SetField(user.FieldJob, field.TypeString, value)
+	}
+	if _u.mutation.JobCleared() {
+		_spec.ClearField(user.FieldJob, field.TypeString)
+	}
 	if value, ok := _u.mutation.PasswordHash(); ok {
 		_spec.SetField(user.FieldPasswordHash, field.TypeString, value)
 	}
@@ -179,6 +269,80 @@ func (_u *UserUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(user.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if _u.mutation.OrganizationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OrganizationsTable,
+			Columns: []string{user.OrganizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationusers.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedOrganizationsIDs(); len(nodes) > 0 && !_u.mutation.OrganizationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OrganizationsTable,
+			Columns: []string{user.OrganizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationusers.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OrganizationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OrganizationsTable,
+			Columns: []string{user.OrganizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationusers.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.PositionCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   user.PositionTable,
+			Columns: []string{user.PositionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(position.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PositionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   user.PositionTable,
+			Columns: []string{user.PositionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(position.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	if _node, err = sqlgraph.UpdateNodes(ctx, _u.driver, _spec); err != nil {
 		if _, ok := err.(*sqlgraph.NotFoundError); ok {
@@ -248,6 +412,26 @@ func (_u *UserUpdateOne) ClearSurname() *UserUpdateOne {
 	return _u
 }
 
+// SetJob sets the "job" field.
+func (_u *UserUpdateOne) SetJob(v string) *UserUpdateOne {
+	_u.mutation.SetJob(v)
+	return _u
+}
+
+// SetNillableJob sets the "job" field if the given value is not nil.
+func (_u *UserUpdateOne) SetNillableJob(v *string) *UserUpdateOne {
+	if v != nil {
+		_u.SetJob(*v)
+	}
+	return _u
+}
+
+// ClearJob clears the value of the "job" field.
+func (_u *UserUpdateOne) ClearJob() *UserUpdateOne {
+	_u.mutation.ClearJob()
+	return _u
+}
+
 // SetPasswordHash sets the "password_hash" field.
 func (_u *UserUpdateOne) SetPasswordHash(v string) *UserUpdateOne {
 	_u.mutation.SetPasswordHash(v)
@@ -290,9 +474,70 @@ func (_u *UserUpdateOne) SetNillableUpdatedAt(v *time.Time) *UserUpdateOne {
 	return _u
 }
 
+// AddOrganizationIDs adds the "organizations" edge to the OrganizationUsers entity by IDs.
+func (_u *UserUpdateOne) AddOrganizationIDs(ids ...uuid.UUID) *UserUpdateOne {
+	_u.mutation.AddOrganizationIDs(ids...)
+	return _u
+}
+
+// AddOrganizations adds the "organizations" edges to the OrganizationUsers entity.
+func (_u *UserUpdateOne) AddOrganizations(v ...*OrganizationUsers) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.AddOrganizationIDs(ids...)
+}
+
+// SetPositionID sets the "position" edge to the Position entity by ID.
+func (_u *UserUpdateOne) SetPositionID(id int) *UserUpdateOne {
+	_u.mutation.SetPositionID(id)
+	return _u
+}
+
+// SetNillablePositionID sets the "position" edge to the Position entity by ID if the given value is not nil.
+func (_u *UserUpdateOne) SetNillablePositionID(id *int) *UserUpdateOne {
+	if id != nil {
+		_u = _u.SetPositionID(*id)
+	}
+	return _u
+}
+
+// SetPosition sets the "position" edge to the Position entity.
+func (_u *UserUpdateOne) SetPosition(v *Position) *UserUpdateOne {
+	return _u.SetPositionID(v.ID)
+}
+
 // Mutation returns the UserMutation object of the builder.
 func (_u *UserUpdateOne) Mutation() *UserMutation {
 	return _u.mutation
+}
+
+// ClearOrganizations clears all "organizations" edges to the OrganizationUsers entity.
+func (_u *UserUpdateOne) ClearOrganizations() *UserUpdateOne {
+	_u.mutation.ClearOrganizations()
+	return _u
+}
+
+// RemoveOrganizationIDs removes the "organizations" edge to OrganizationUsers entities by IDs.
+func (_u *UserUpdateOne) RemoveOrganizationIDs(ids ...uuid.UUID) *UserUpdateOne {
+	_u.mutation.RemoveOrganizationIDs(ids...)
+	return _u
+}
+
+// RemoveOrganizations removes "organizations" edges to OrganizationUsers entities.
+func (_u *UserUpdateOne) RemoveOrganizations(v ...*OrganizationUsers) *UserUpdateOne {
+	ids := make([]uuid.UUID, len(v))
+	for i := range v {
+		ids[i] = v[i].ID
+	}
+	return _u.RemoveOrganizationIDs(ids...)
+}
+
+// ClearPosition clears the "position" edge to the Position entity.
+func (_u *UserUpdateOne) ClearPosition() *UserUpdateOne {
+	_u.mutation.ClearPosition()
+	return _u
 }
 
 // Where appends a list predicates to the UserUpdate builder.
@@ -373,6 +618,12 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	if _u.mutation.SurnameCleared() {
 		_spec.ClearField(user.FieldSurname, field.TypeString)
 	}
+	if value, ok := _u.mutation.Job(); ok {
+		_spec.SetField(user.FieldJob, field.TypeString, value)
+	}
+	if _u.mutation.JobCleared() {
+		_spec.ClearField(user.FieldJob, field.TypeString)
+	}
 	if value, ok := _u.mutation.PasswordHash(); ok {
 		_spec.SetField(user.FieldPasswordHash, field.TypeString, value)
 	}
@@ -381,6 +632,80 @@ func (_u *UserUpdateOne) sqlSave(ctx context.Context) (_node *User, err error) {
 	}
 	if value, ok := _u.mutation.UpdatedAt(); ok {
 		_spec.SetField(user.FieldUpdatedAt, field.TypeTime, value)
+	}
+	if _u.mutation.OrganizationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OrganizationsTable,
+			Columns: []string{user.OrganizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationusers.FieldID, field.TypeUUID),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.RemovedOrganizationsIDs(); len(nodes) > 0 && !_u.mutation.OrganizationsCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OrganizationsTable,
+			Columns: []string{user.OrganizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationusers.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.OrganizationsIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.O2M,
+			Inverse: false,
+			Table:   user.OrganizationsTable,
+			Columns: []string{user.OrganizationsColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(organizationusers.FieldID, field.TypeUUID),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
+	}
+	if _u.mutation.PositionCleared() {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   user.PositionTable,
+			Columns: []string{user.PositionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(position.FieldID, field.TypeInt),
+			},
+		}
+		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
+	}
+	if nodes := _u.mutation.PositionIDs(); len(nodes) > 0 {
+		edge := &sqlgraph.EdgeSpec{
+			Rel:     sqlgraph.M2O,
+			Inverse: false,
+			Table:   user.PositionTable,
+			Columns: []string{user.PositionColumn},
+			Bidi:    false,
+			Target: &sqlgraph.EdgeTarget{
+				IDSpec: sqlgraph.NewFieldSpec(position.FieldID, field.TypeInt),
+			},
+		}
+		for _, k := range nodes {
+			edge.Target.Nodes = append(edge.Target.Nodes, k)
+		}
+		_spec.Edges.Add = append(_spec.Edges.Add, edge)
 	}
 	_node = &User{config: _u.config}
 	_spec.Assign = _node.assignValues

@@ -10,6 +10,7 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
+	"github.com/xilidan/backend/services/sso/storage/postgres/ent/position"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/user"
 )
 
@@ -24,13 +25,50 @@ type User struct {
 	Name string `json:"name,omitempty"`
 	// Surname holds the value of the "surname" field.
 	Surname *string `json:"surname,omitempty"`
+	// Job holds the value of the "job" field.
+	Job *string `json:"job,omitempty"`
 	// PasswordHash holds the value of the "password_hash" field.
 	PasswordHash string `json:"-"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
-	UpdatedAt    time.Time `json:"updated_at,omitempty"`
-	selectValues sql.SelectValues
+	UpdatedAt time.Time `json:"updated_at,omitempty"`
+	// Edges holds the relations/edges for other nodes in the graph.
+	// The values are being populated by the UserQuery when eager-loading is set.
+	Edges         UserEdges `json:"edges"`
+	user_position *int
+	selectValues  sql.SelectValues
+}
+
+// UserEdges holds the relations/edges for other nodes in the graph.
+type UserEdges struct {
+	// Organizations holds the value of the organizations edge.
+	Organizations []*OrganizationUsers `json:"organizations,omitempty"`
+	// Position holds the value of the position edge.
+	Position *Position `json:"position,omitempty"`
+	// loadedTypes holds the information for reporting if a
+	// type was loaded (or requested) in eager-loading or not.
+	loadedTypes [2]bool
+}
+
+// OrganizationsOrErr returns the Organizations value or an error if the edge
+// was not loaded in eager-loading.
+func (e UserEdges) OrganizationsOrErr() ([]*OrganizationUsers, error) {
+	if e.loadedTypes[0] {
+		return e.Organizations, nil
+	}
+	return nil, &NotLoadedError{edge: "organizations"}
+}
+
+// PositionOrErr returns the Position value or an error if the edge
+// was not loaded in eager-loading, or loaded but was not found.
+func (e UserEdges) PositionOrErr() (*Position, error) {
+	if e.Position != nil {
+		return e.Position, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: position.Label}
+	}
+	return nil, &NotLoadedError{edge: "position"}
 }
 
 // scanValues returns the types for scanning values from sql.Rows.
@@ -38,12 +76,14 @@ func (*User) scanValues(columns []string) ([]any, error) {
 	values := make([]any, len(columns))
 	for i := range columns {
 		switch columns[i] {
-		case user.FieldEmail, user.FieldName, user.FieldSurname, user.FieldPasswordHash:
+		case user.FieldEmail, user.FieldName, user.FieldSurname, user.FieldJob, user.FieldPasswordHash:
 			values[i] = new(sql.NullString)
 		case user.FieldCreatedAt, user.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
 		case user.FieldID:
 			values[i] = new(uuid.UUID)
+		case user.ForeignKeys[0]: // user_position
+			values[i] = new(sql.NullInt64)
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -84,6 +124,13 @@ func (_m *User) assignValues(columns []string, values []any) error {
 				_m.Surname = new(string)
 				*_m.Surname = value.String
 			}
+		case user.FieldJob:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field job", values[i])
+			} else if value.Valid {
+				_m.Job = new(string)
+				*_m.Job = value.String
+			}
 		case user.FieldPasswordHash:
 			if value, ok := values[i].(*sql.NullString); !ok {
 				return fmt.Errorf("unexpected type %T for field password_hash", values[i])
@@ -102,6 +149,13 @@ func (_m *User) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
 			}
+		case user.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullInt64); !ok {
+				return fmt.Errorf("unexpected type %T for edge-field user_position", value)
+			} else if value.Valid {
+				_m.user_position = new(int)
+				*_m.user_position = int(value.Int64)
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -113,6 +167,16 @@ func (_m *User) assignValues(columns []string, values []any) error {
 // This includes values selected through modifiers, order, etc.
 func (_m *User) Value(name string) (ent.Value, error) {
 	return _m.selectValues.Get(name)
+}
+
+// QueryOrganizations queries the "organizations" edge of the User entity.
+func (_m *User) QueryOrganizations() *OrganizationUsersQuery {
+	return NewUserClient(_m.config).QueryOrganizations(_m)
+}
+
+// QueryPosition queries the "position" edge of the User entity.
+func (_m *User) QueryPosition() *PositionQuery {
+	return NewUserClient(_m.config).QueryPosition(_m)
 }
 
 // Update returns a builder for updating this User.
@@ -146,6 +210,11 @@ func (_m *User) String() string {
 	builder.WriteString(", ")
 	if v := _m.Surname; v != nil {
 		builder.WriteString("surname=")
+		builder.WriteString(*v)
+	}
+	builder.WriteString(", ")
+	if v := _m.Job; v != nil {
+		builder.WriteString("job=")
 		builder.WriteString(*v)
 	}
 	builder.WriteString(", ")

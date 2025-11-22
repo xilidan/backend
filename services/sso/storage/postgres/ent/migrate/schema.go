@@ -8,27 +8,114 @@ import (
 )
 
 var (
+	// OrganizationsColumns holds the columns for the "organizations" table.
+	OrganizationsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "name", Type: field.TypeString},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// OrganizationsTable holds the schema information for the "organizations" table.
+	OrganizationsTable = &schema.Table{
+		Name:       "organizations",
+		Columns:    OrganizationsColumns,
+		PrimaryKey: []*schema.Column{OrganizationsColumns[0]},
+	}
+	// OrganizationUsersColumns holds the columns for the "organization_users" table.
+	OrganizationUsersColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "organization_users", Type: field.TypeUUID, Nullable: true},
+		{Name: "organization_users_user", Type: field.TypeUUID},
+		{Name: "organization_users_organization", Type: field.TypeUUID},
+		{Name: "user_organizations", Type: field.TypeUUID, Nullable: true},
+	}
+	// OrganizationUsersTable holds the schema information for the "organization_users" table.
+	OrganizationUsersTable = &schema.Table{
+		Name:       "organization_users",
+		Columns:    OrganizationUsersColumns,
+		PrimaryKey: []*schema.Column{OrganizationUsersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "organization_users_organizations_users",
+				Columns:    []*schema.Column{OrganizationUsersColumns[3]},
+				RefColumns: []*schema.Column{OrganizationsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "organization_users_users_user",
+				Columns:    []*schema.Column{OrganizationUsersColumns[4]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "organization_users_organizations_organization",
+				Columns:    []*schema.Column{OrganizationUsersColumns[5]},
+				RefColumns: []*schema.Column{OrganizationsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+			{
+				Symbol:     "organization_users_users_organizations",
+				Columns:    []*schema.Column{OrganizationUsersColumns[6]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+	}
+	// PositionsColumns holds the columns for the "positions" table.
+	PositionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "name", Type: field.TypeString},
+		{Name: "is_reviewer", Type: field.TypeBool},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "updated_at", Type: field.TypeTime},
+	}
+	// PositionsTable holds the schema information for the "positions" table.
+	PositionsTable = &schema.Table{
+		Name:       "positions",
+		Columns:    PositionsColumns,
+		PrimaryKey: []*schema.Column{PositionsColumns[0]},
+	}
 	// UsersColumns holds the columns for the "users" table.
 	UsersColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID},
 		{Name: "email", Type: field.TypeString, Unique: true},
 		{Name: "name", Type: field.TypeString},
 		{Name: "surname", Type: field.TypeString, Nullable: true},
+		{Name: "job", Type: field.TypeString, Nullable: true},
 		{Name: "password_hash", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "user_position", Type: field.TypeInt, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
 	UsersTable = &schema.Table{
 		Name:       "users",
 		Columns:    UsersColumns,
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "users_positions_position",
+				Columns:    []*schema.Column{UsersColumns[8]},
+				RefColumns: []*schema.Column{PositionsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
+		OrganizationsTable,
+		OrganizationUsersTable,
+		PositionsTable,
 		UsersTable,
 	}
 )
 
 func init() {
+	OrganizationUsersTable.ForeignKeys[0].RefTable = OrganizationsTable
+	OrganizationUsersTable.ForeignKeys[1].RefTable = UsersTable
+	OrganizationUsersTable.ForeignKeys[2].RefTable = OrganizationsTable
+	OrganizationUsersTable.ForeignKeys[3].RefTable = UsersTable
+	UsersTable.ForeignKeys[0].RefTable = PositionsTable
 }

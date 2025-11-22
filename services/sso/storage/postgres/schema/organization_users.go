@@ -10,28 +10,26 @@ import (
 	"github.com/xilidan/backend/pkg/gen"
 )
 
-type User struct {
+type OrganizationUsers struct {
 	ent.Schema
 }
 
-func (User) Fields() []ent.Field {
+func (OrganizationUsers) Fields() []ent.Field {
 	return []ent.Field{
 		field.UUID("id", uuid.UUID{}).
 			Default((func() uuid.UUID)(gen.UUID())),
-		field.String("email").Unique(),
-		field.String("name"),
-		field.String("surname").Optional().Nillable(),
-		field.String("job").Optional().Nillable(),
-		field.String("password_hash").Sensitive(),
 		field.Time("created_at").Default(time.Now()),
 		field.Time("updated_at").Default(time.Now()),
 	}
 }
 
-func (User) Edges() []ent.Edge {
+func (OrganizationUsers) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("organizations", OrganizationUsers.Type),
-		edge.To("position", Position.Type).
-			Unique(),
+		edge.To("user", User.Type).
+			Unique().
+			Required(),
+		edge.To("organization", Organization.Type).
+			Unique().
+			Required(),
 	}
 }

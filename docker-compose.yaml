@@ -7,5 +7,3 @@ services:
     ports:
       - "8095:8080"
     restart: unless-stopped
-    environment:
-      - ENV=prod

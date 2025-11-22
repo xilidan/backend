@@ -6,6 +6,9 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organization"
+	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organizationusers"
+	"github.com/xilidan/backend/services/sso/storage/postgres/ent/position"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/user"
 	"github.com/xilidan/backend/services/sso/storage/postgres/schema"
 )
@@ -14,14 +17,52 @@ import (
 // (default values, validators, hooks and policies) and stitches it
 // to their package variables.
 func init() {
+	organizationFields := schema.Organization{}.Fields()
+	_ = organizationFields
+	// organizationDescCreatedAt is the schema descriptor for created_at field.
+	organizationDescCreatedAt := organizationFields[2].Descriptor()
+	// organization.DefaultCreatedAt holds the default value on creation for the created_at field.
+	organization.DefaultCreatedAt = organizationDescCreatedAt.Default.(time.Time)
+	// organizationDescUpdatedAt is the schema descriptor for updated_at field.
+	organizationDescUpdatedAt := organizationFields[3].Descriptor()
+	// organization.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	organization.DefaultUpdatedAt = organizationDescUpdatedAt.Default.(time.Time)
+	// organizationDescID is the schema descriptor for id field.
+	organizationDescID := organizationFields[0].Descriptor()
+	// organization.DefaultID holds the default value on creation for the id field.
+	organization.DefaultID = organizationDescID.Default.(func() uuid.UUID)
+	organizationusersFields := schema.OrganizationUsers{}.Fields()
+	_ = organizationusersFields
+	// organizationusersDescCreatedAt is the schema descriptor for created_at field.
+	organizationusersDescCreatedAt := organizationusersFields[1].Descriptor()
+	// organizationusers.DefaultCreatedAt holds the default value on creation for the created_at field.
+	organizationusers.DefaultCreatedAt = organizationusersDescCreatedAt.Default.(time.Time)
+	// organizationusersDescUpdatedAt is the schema descriptor for updated_at field.
+	organizationusersDescUpdatedAt := organizationusersFields[2].Descriptor()
+	// organizationusers.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	organizationusers.DefaultUpdatedAt = organizationusersDescUpdatedAt.Default.(time.Time)
+	// organizationusersDescID is the schema descriptor for id field.
+	organizationusersDescID := organizationusersFields[0].Descriptor()
+	// organizationusers.DefaultID holds the default value on creation for the id field.
+	organizationusers.DefaultID = organizationusersDescID.Default.(func() uuid.UUID)
+	positionFields := schema.Position{}.Fields()
+	_ = positionFields
+	// positionDescCreatedAt is the schema descriptor for created_at field.
+	positionDescCreatedAt := positionFields[2].Descriptor()
+	// position.DefaultCreatedAt holds the default value on creation for the created_at field.
+	position.DefaultCreatedAt = positionDescCreatedAt.Default.(time.Time)
+	// positionDescUpdatedAt is the schema descriptor for updated_at field.
+	positionDescUpdatedAt := positionFields[3].Descriptor()
+	// position.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	position.DefaultUpdatedAt = positionDescUpdatedAt.Default.(time.Time)
 	userFields := schema.User{}.Fields()
 	_ = userFields
 	// userDescCreatedAt is the schema descriptor for created_at field.
-	userDescCreatedAt := userFields[5].Descriptor()
+	userDescCreatedAt := userFields[6].Descriptor()
 	// user.DefaultCreatedAt holds the default value on creation for the created_at field.
 	user.DefaultCreatedAt = userDescCreatedAt.Default.(time.Time)
 	// userDescUpdatedAt is the schema descriptor for updated_at field.
-	userDescUpdatedAt := userFields[6].Descriptor()
+	userDescUpdatedAt := userFields[7].Descriptor()
 	// user.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	user.DefaultUpdatedAt = userDescUpdatedAt.Default.(time.Time)
 	// userDescID is the schema descriptor for id field.
