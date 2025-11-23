@@ -7,3 +7,57 @@ services:
     ports:
       - "8095:8080"
     restart: unless-stopped
+    networks:
+      - app-network
+    environment:
+      - JWT_SECRET=your-secret-key-change-in-production
+      - SSO_PORT=50051
+      - SSO_URL=sso-service
+    depends_on:
+      - sso-service
+
+  sso-service:
+    build:
+      context: .
+      dockerfile: ./deploy/sso/Dockerfile
+    container_name: sso-service
+    restart: unless-stopped
+    networks:
+      - app-network
+    environment:
+      - DB_USER=sso_user
+      - DB_PASSWORD=sso_password
+      - DB_HOST=sso-db
+      - DB_NAME=sso_db
+      - DB_PORT=5432
+      - DB_SSLMODE=disable
+      - JWT_SECRET=your-secret-key-change-in-production
+      - PORT=50051
+    depends_on:
+      sso-db:
+        condition: service_healthy
+
+  sso-db:
+    image: postgres:16-alpine
+    container_name: sso-db
+    restart: unless-stopped
+    networks:
+      - app-network
+    environment:
+      - POSTGRES_USER=sso_user
+      - POSTGRES_PASSWORD=sso_password
+      - POSTGRES_DB=sso_db
+    volumes:
+      - sso-db-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sso_user -d sso_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  sso-db-data:

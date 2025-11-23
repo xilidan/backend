@@ -20,6 +20,7 @@ RUN apk --no-cache add ca-certificates tzdata
 WORKDIR /app
 
 COPY --from=builder /app/gateways/web .
+COPY --from=builder /build/specs/openapi/web/api.yaml /app/specs/openapi/web/api.yaml
 
 RUN addgroup -g 1000 appuser && \
     adduser -D -u 1000 -G appuser appuser && \

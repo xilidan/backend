@@ -13,13 +13,18 @@ import (
 func (s *storage) CreateUser(ctx context.Context, req *entity.RegitserRequest) (*entity.User, error) {
 	log := logger.FromContext(ctx)
 
-	entUser, err := s.User.Create().
+	userCreate := s.User.Create().
 		SetName(req.Name).
 		SetNillableSurname(req.Surname).
 		SetEmail(req.Email).
-		SetPasswordHash(req.Password).
-		SetPositionID(req.PositionID).
-		Save(ctx)
+		SetPasswordHash(req.Password)
+
+	// Only set position if it's provided (for organization users)
+	if req.PositionID != 0 {
+		userCreate = userCreate.SetPositionID(req.PositionID)
+	}
+
+	entUser, err := userCreate.Save(ctx)
 	if err != nil {
 		log.Error("failed to create user", "error", err)
 		return nil, fmt.Errorf("failed to create user: %w", err)

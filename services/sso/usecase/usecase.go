@@ -124,13 +124,56 @@ func (u *usecase) CreateOrganization(ctx context.Context, req *entity.CreateOrga
 		return nil, err
 	}
 
+	organization.Positions = positions
+
 	return &entity.CreateOrganizationResp{
 		Organization: organization,
 	}, nil
 }
 
 func (u *usecase) UpdateOrganization(ctx context.Context, req *entity.UpdateOrganizationReq) (*entity.UpdateOrgnaizationResp, error) {
-	return nil, nil
+	positions := make([]*entity.Position, len(req.Positions))
+	for i, position := range req.Positions {
+		entPosition, err := u.Storage.CreatePosition(ctx, &position)
+		if err != nil {
+			return nil, err
+		}
+		positions[i] = entPosition
+	}
+
+	userIDs := make([]uuid.UUID, len(req.Users))
+	for i, user := range req.Users {
+		entUser, err := u.Storage.CreateUser(ctx, &entity.RegitserRequest{
+			Name:       user.Name,
+			Surname:    user.Surname,
+			Email:      user.Email,
+			PositionID: positions[i].ID,
+			Password:   "",
+		})
+		if err != nil {
+			return nil, err
+		}
+
+		userUUID, err := uuid.Parse(entUser.ID)
+		if err != nil {
+			return nil, err
+		}
+		userIDs[i] = userUUID
+	}
+
+	organization, err := u.Storage.UpdateOrganization(ctx, &entity.Organization{
+		ID:   req.ID,
+		Name: req.Name,
+	}, userIDs)
+	if err != nil {
+		return nil, err
+	}
+
+	organization.Positions = positions
+
+	return &entity.UpdateOrgnaizationResp{
+		Organization: *organization,
+	}, nil
 }
 
 func (u *usecase) GetOrganization(ctx context.Context, req *entity.GetOrganizationReq) (*entity.GetOrganizationResp, error) {

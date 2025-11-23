@@ -34,6 +34,11 @@ type (
 )
 
 func MakeUserEntToEntity(user *ent.User) *User {
+	var position *Position
+	if user.Edges.Position != nil {
+		position = MakePositionEntToEntity(user.Edges.Position)
+	}
+
 	return &User{
 		ID:        user.ID.String(),
 		Name:      user.Name,
@@ -41,13 +46,16 @@ func MakeUserEntToEntity(user *ent.User) *User {
 		Email:     user.Email,
 		Password:  user.PasswordHash,
 		Job:       user.Job,
-		Position:  MakePositionEntToEntity(user.Edges.Position),
+		Position:  position,
 		CreatedAt: user.CreatedAt,
 		UpdatedAt: user.UpdatedAt,
 	}
 }
 
 func MakePositionEntToEntity(position *ent.Position) *Position {
+	if position == nil {
+		return nil
+	}
 	return &Position{
 		ID:         position.ID,
 		Name:       position.Name,
