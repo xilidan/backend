@@ -47,7 +47,7 @@ class LLMClientImpl:
             self.model = "gpt-4-turbo-preview"
             self._init_standard_client()
         elif self.provider == "anthropic":
-            self.model = "claude-3-5-sonnet-20241022"
+            self.model = "claude-sonnet-4-5"
             self._init_standard_client()
         else:
             self.model = "gpt-4-turbo-preview"
