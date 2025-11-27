@@ -23,6 +23,7 @@ type Usecase interface {
 	CreateOrganization(ctx context.Context, req *entity.CreateOrganizationReq) (*entity.CreateOrganizationResp, error)
 	UpdateOrganization(ctx context.Context, req *entity.UpdateOrganizationReq) (*entity.UpdateOrgnaizationResp, error)
 	GetOrganization(ctx context.Context, req *entity.GetOrganizationReq) (*entity.GetOrganizationResp, error)
+	GetPositions(ctx context.Context, req *entity.GetPositionsReq) (*entity.GetPositionsResp, error)
 }
 
 func New(cfg *config.Config, storage storage.Storage) Usecase {
@@ -209,5 +210,16 @@ func (u *usecase) GetOrganization(ctx context.Context, req *entity.GetOrganizati
 
 	return &entity.GetOrganizationResp{
 		Organization: organization,
+	}, nil
+}
+
+func (u *usecase) GetPositions(ctx context.Context, req *entity.GetPositionsReq) (*entity.GetPositionsResp, error) {
+	positions, err := u.Storage.GetPositions(ctx, req.OrganizationID)
+	if err != nil {
+		return nil, err
+	}
+
+	return &entity.GetPositionsResp{
+		Positions: positions,
 	}, nil
 }
