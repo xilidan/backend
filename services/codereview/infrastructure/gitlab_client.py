@@ -37,6 +37,10 @@ class GitLabClientImpl:
             created_at=datetime.fromisoformat(mr.created_at.replace('Z', '+00:00')),
             updated_at=datetime.fromisoformat(mr.updated_at.replace('Z', '+00:00')),
             web_url=mr.web_url,
+            author_username=mr.author.get('username'),
+            # GitLab API might not expose email directly depending on visibility
+            # Fallback to constructing one or using a placeholder
+            author_email=mr.author.get('public_email') or f"{mr.author.get('username')}@gitlab.local",
         )
     
     async def get_merge_request_diff(

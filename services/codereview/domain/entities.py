@@ -40,6 +40,8 @@ class MergeRequest:
     created_at: datetime
     updated_at: datetime
     web_url: Optional[str] = None
+    author_username: Optional[str] = None
+    author_email: Optional[str] = None
 
 
 @dataclass
@@ -78,12 +80,14 @@ class ReviewResult:
     summary: str
     recommendation: ReviewRecommendation
     reviewed_at: datetime = field(default_factory=datetime.utcnow)
+    quality_score: int = 0  # 0-100 score
     
     def to_summary_markdown(self) -> str:
         lines = [
             "## 🤖 AI Code Review Summary",
             "",
             f"**Recommendation**: {self.recommendation.value.replace('_', ' ').title()}",
+            f"**Quality Score**: {self.quality_score}/100",
             "",
             self.summary,
             "",
@@ -103,3 +107,11 @@ class ReviewResult:
             ])
         
         return "\n".join(lines)
+
+
+@dataclass
+class UserRating:
+    email: str
+    rating: int = 500
+    review_count: int = 0
+    last_updated: datetime = field(default_factory=datetime.utcnow)

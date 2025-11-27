@@ -14,6 +14,8 @@ from infrastructure import (
     MockLLMClient,
     InMemoryReviewRepository,
     RedisReviewRepository,
+    MongoUserRepository,
+    MongoReviewRepository,
 )
 from usecase import ReviewUsecase
 
@@ -60,14 +62,27 @@ async def lifespan(app: FastAPI):
     if settings.repository_type == "redis":
         logger.info(f"Using Redis repository: {settings.redis_url}")
         repository = RedisReviewRepository(redis_url=settings.redis_url)
+    elif settings.repository_type == "mongo":
+        logger.info(f"Using Mongo repository: {settings.mongo_url}")
+        repository = MongoReviewRepository(
+            mongo_url=settings.mongo_url,
+            db_name=settings.mongo_db_name,
+        )
     else:
         logger.info("Using in-memory repository")
         repository = InMemoryReviewRepository()
+    
+    # Initialize User Repository (always Mongo for now)
+    user_repository = MongoUserRepository(
+        mongo_url=settings.mongo_url,
+        db_name=settings.mongo_db_name,
+    )
     
     review_usecase_instance = ReviewUsecase(
         gitlab_client=gitlab_client,
         llm_client=llm_client,
         repository=repository,
+        user_repository=user_repository,
         development_standards=settings.development_standards,
     )
     

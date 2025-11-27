@@ -128,3 +128,21 @@ async def trigger_review(
         "project_id": project_id,
         "mr_iid": mr_iid,
     }
+
+
+@router.get("/users/{email}/rating")
+async def get_user_rating(email: str):
+    if not review_usecase:
+        raise HTTPException(status_code=500, detail="Service not initialized")
+    
+    rating = await review_usecase.user_repository.get_user_rating(email)
+    
+    if not rating:
+        raise HTTPException(status_code=404, detail="User rating not found")
+    
+    return {
+        "email": rating.email,
+        "rating": rating.rating,
+        "review_count": rating.review_count,
+        "last_updated": rating.last_updated.isoformat(),
+    }

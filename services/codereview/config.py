@@ -19,8 +19,10 @@ class Settings(BaseSettings):
     azure_config_path: str = os.getenv("AZURE_CONFIG_PATH", "instance.json")
     use_mock_llm: bool = os.getenv("USE_MOCK_LLM", "false").lower() == "true"
     
-    repository_type: str = os.getenv("REPOSITORY_TYPE", "memory")  # memory, redis
+    repository_type: str = os.getenv("REPOSITORY_TYPE", "memory")  # memory, redis, mongo
     redis_url: str = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    mongo_url: str = os.getenv("MONGO_URL", "mongodb://mongo:27017")
+    mongo_db_name: str = os.getenv("MONGO_DB_NAME", "codereview")
     
     development_standards: list[str] = [
         "Follow PEP 8 style guide",

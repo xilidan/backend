@@ -9,7 +9,9 @@ from domain import (
     GitLabClient,
     LLMClient,
     ReviewRepository,
+    UserRating,
 )
+from infrastructure.mongo_repository import MongoUserRepository, MongoReviewRepository
 
 
 logger = logging.getLogger(__name__)
@@ -21,11 +23,13 @@ class ReviewUsecase:
         gitlab_client: GitLabClient,
         llm_client: LLMClient,
         repository: ReviewRepository,
+        user_repository: MongoUserRepository,
         development_standards: list[str] | None = None,
     ):
         self.gitlab_client = gitlab_client
         self.llm_client = llm_client
         self.repository = repository
+        self.user_repository = user_repository
         self.development_standards = development_standards or [
             "Follow PEP 8 style guide",
             "Write clear and concise comments",
@@ -43,12 +47,16 @@ class ReviewUsecase:
         
         logger.info(f"Analyzing {len(file_diffs)} file(s) in MR '{mr.title}'")
         
-        comments, summary, recommendation = await self.llm_client.analyze_code(
+        comments, summary, recommendation, quality_score = await self.llm_client.analyze_code(
             mr_title=mr.title,
             mr_description=mr.description,
             file_diffs=file_diffs,
             standards=self.development_standards,
         )
+        
+        # Handle user rating
+        if mr.author_email:
+            await self._update_user_rating(mr.author_email, quality_score)
         
         result = ReviewResult(
             mr_id=mr_iid,  # Use mr_iid (project-scoped) not mr.id (global)
@@ -57,17 +65,37 @@ class ReviewUsecase:
             summary=summary,
             recommendation=recommendation,
             reviewed_at=datetime.utcnow(),
+            quality_score=quality_score,
         )
         
         await self.repository.save(result)
         
         logger.info(
             f"Review completed: {len(comments)} comments, "
-            f"recommendation: {recommendation.value}"
+            f"recommendation: {recommendation.value}, score: {quality_score}"
         )
         
         return result
     
+    async def _update_user_rating(self, email: str, quality_score: int) -> None:
+        user_rating = await self.user_repository.get_user_rating(email)
+        
+        if not user_rating:
+            logger.info(f"Creating new user rating for {email}")
+            user_rating = UserRating(email=email, rating=500, review_count=0)
+        
+        # Simple rating update logic: +/- from base 50
+        # If score > 50, rating increases. If score < 50, rating decreases.
+        rating_change = quality_score - 50
+        new_rating = user_rating.rating + rating_change
+        
+        user_rating.rating = new_rating
+        user_rating.review_count += 1
+        user_rating.last_updated = datetime.utcnow()
+        
+        await self.user_repository.save_user_rating(user_rating)
+        logger.info(f"Updated rating for {email}: {user_rating.rating} (change: {rating_change})")
+
     async def post_review_to_gitlab(self, project_id: int, mr_iid: int) -> None:
         logger.info(f"Posting review to GitLab for MR {project_id}/{mr_iid}")
         
@@ -106,7 +134,7 @@ class ReviewUsecase:
     ) -> None:
         logger.info(f"Processing webhook event: {action} for MR {project_id}/{mr_iid}")
         
-        if action not in ["open", "update", "reopen"]:
+        if action not in ["open", "update", "reopen", "manual"]:
             logger.info(f"Ignoring action: {action}")
             return
         
