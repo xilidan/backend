@@ -150,7 +150,8 @@ class LLMClientImpl:
    - Best practice violations
    - Functional correctness
 
-3. Rate the code quality on a scale of 0 to 100 (0=terrible, 100=perfect).
+3. Rate the code quality on a scale of 0 to 1000 (0=terrible, 1000=perfect).
+Middle value is 500.
 
 4. Provide your response in the following JSON format:
 {{

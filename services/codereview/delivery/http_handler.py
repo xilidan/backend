@@ -48,6 +48,7 @@ async def gitlab_webhook(
         action = attrs.get("action")
         
         user = payload.get("user", {})
+        logger.info(f"Webhook user payload: {user}")
         trigger_user_email = user.get("email")
         
         if not project_id or not mr_iid:
