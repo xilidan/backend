@@ -26,10 +26,8 @@ func (OrganizationUsers) Fields() []ent.Field {
 func (OrganizationUsers) Edges() []ent.Edge {
 	return []ent.Edge{
 		edge.To("user", User.Type).
-			Unique().
 			Required(),
 		edge.To("organization", Organization.Type).
-			Unique().
 			Required(),
 	}
 }

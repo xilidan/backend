@@ -630,9 +630,11 @@ type OrganizationUsersMutation struct {
 	created_at          *time.Time
 	updated_at          *time.Time
 	clearedFields       map[string]struct{}
-	user                *uuid.UUID
+	user                map[uuid.UUID]struct{}
+	removeduser         map[uuid.UUID]struct{}
 	cleareduser         bool
-	organization        *uuid.UUID
+	organization        map[uuid.UUID]struct{}
+	removedorganization map[uuid.UUID]struct{}
 	clearedorganization bool
 	done                bool
 	oldValue            func(context.Context) (*OrganizationUsers, error)
@@ -815,9 +817,14 @@ func (m *OrganizationUsersMutation) ResetUpdatedAt() {
 	m.updated_at = nil
 }
 
-// SetUserID sets the "user" edge to the User entity by id.
-func (m *OrganizationUsersMutation) SetUserID(id uuid.UUID) {
-	m.user = &id
+// AddUserIDs adds the "user" edge to the User entity by ids.
+func (m *OrganizationUsersMutation) AddUserIDs(ids ...uuid.UUID) {
+	if m.user == nil {
+		m.user = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.user[ids[i]] = struct{}{}
+	}
 }
 
 // ClearUser clears the "user" edge to the User entity.
@@ -830,20 +837,29 @@ func (m *OrganizationUsersMutation) UserCleared() bool {
 	return m.cleareduser
 }
 
-// UserID returns the "user" edge ID in the mutation.
-func (m *OrganizationUsersMutation) UserID() (id uuid.UUID, exists bool) {
-	if m.user != nil {
-		return *m.user, true
+// RemoveUserIDs removes the "user" edge to the User entity by IDs.
+func (m *OrganizationUsersMutation) RemoveUserIDs(ids ...uuid.UUID) {
+	if m.removeduser == nil {
+		m.removeduser = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.user, ids[i])
+		m.removeduser[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedUser returns the removed IDs of the "user" edge to the User entity.
+func (m *OrganizationUsersMutation) RemovedUserIDs() (ids []uuid.UUID) {
+	for id := range m.removeduser {
+		ids = append(ids, id)
 	}
 	return
 }
 
 // UserIDs returns the "user" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// UserID instead. It exists only for internal usage by the builders.
 func (m *OrganizationUsersMutation) UserIDs() (ids []uuid.UUID) {
-	if id := m.user; id != nil {
-		ids = append(ids, *id)
+	for id := range m.user {
+		ids = append(ids, id)
 	}
 	return
 }
@@ -852,11 +868,17 @@ func (m *OrganizationUsersMutation) UserIDs() (ids []uuid.UUID) {
 func (m *OrganizationUsersMutation) ResetUser() {
 	m.user = nil
 	m.cleareduser = false
+	m.removeduser = nil
 }
 
-// SetOrganizationID sets the "organization" edge to the Organization entity by id.
-func (m *OrganizationUsersMutation) SetOrganizationID(id uuid.UUID) {
-	m.organization = &id
+// AddOrganizationIDs adds the "organization" edge to the Organization entity by ids.
+func (m *OrganizationUsersMutation) AddOrganizationIDs(ids ...uuid.UUID) {
+	if m.organization == nil {
+		m.organization = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		m.organization[ids[i]] = struct{}{}
+	}
 }
 
 // ClearOrganization clears the "organization" edge to the Organization entity.
@@ -869,20 +891,29 @@ func (m *OrganizationUsersMutation) OrganizationCleared() bool {
 	return m.clearedorganization
 }
 
-// OrganizationID returns the "organization" edge ID in the mutation.
-func (m *OrganizationUsersMutation) OrganizationID() (id uuid.UUID, exists bool) {
-	if m.organization != nil {
-		return *m.organization, true
+// RemoveOrganizationIDs removes the "organization" edge to the Organization entity by IDs.
+func (m *OrganizationUsersMutation) RemoveOrganizationIDs(ids ...uuid.UUID) {
+	if m.removedorganization == nil {
+		m.removedorganization = make(map[uuid.UUID]struct{})
+	}
+	for i := range ids {
+		delete(m.organization, ids[i])
+		m.removedorganization[ids[i]] = struct{}{}
+	}
+}
+
+// RemovedOrganization returns the removed IDs of the "organization" edge to the Organization entity.
+func (m *OrganizationUsersMutation) RemovedOrganizationIDs() (ids []uuid.UUID) {
+	for id := range m.removedorganization {
+		ids = append(ids, id)
 	}
 	return
 }
 
 // OrganizationIDs returns the "organization" edge IDs in the mutation.
-// Note that IDs always returns len(IDs) <= 1 for unique edges, and you should use
-// OrganizationID instead. It exists only for internal usage by the builders.
 func (m *OrganizationUsersMutation) OrganizationIDs() (ids []uuid.UUID) {
-	if id := m.organization; id != nil {
-		ids = append(ids, *id)
+	for id := range m.organization {
+		ids = append(ids, id)
 	}
 	return
 }
@@ -891,6 +922,7 @@ func (m *OrganizationUsersMutation) OrganizationIDs() (ids []uuid.UUID) {
 func (m *OrganizationUsersMutation) ResetOrganization() {
 	m.organization = nil
 	m.clearedorganization = false
+	m.removedorganization = nil
 }
 
 // Where appends a list predicates to the OrganizationUsersMutation builder.
@@ -1058,13 +1090,17 @@ func (m *OrganizationUsersMutation) AddedEdges() []string {
 func (m *OrganizationUsersMutation) AddedIDs(name string) []ent.Value {
 	switch name {
 	case organizationusers.EdgeUser:
-		if id := m.user; id != nil {
-			return []ent.Value{*id}
+		ids := make([]ent.Value, 0, len(m.user))
+		for id := range m.user {
+			ids = append(ids, id)
 		}
+		return ids
 	case organizationusers.EdgeOrganization:
-		if id := m.organization; id != nil {
-			return []ent.Value{*id}
+		ids := make([]ent.Value, 0, len(m.organization))
+		for id := range m.organization {
+			ids = append(ids, id)
 		}
+		return ids
 	}
 	return nil
 }
@@ -1072,12 +1108,32 @@ func (m *OrganizationUsersMutation) AddedIDs(name string) []ent.Value {
 // RemovedEdges returns all edge names that were removed in this mutation.
 func (m *OrganizationUsersMutation) RemovedEdges() []string {
 	edges := make([]string, 0, 2)
+	if m.removeduser != nil {
+		edges = append(edges, organizationusers.EdgeUser)
+	}
+	if m.removedorganization != nil {
+		edges = append(edges, organizationusers.EdgeOrganization)
+	}
 	return edges
 }
 
 // RemovedIDs returns all IDs (to other nodes) that were removed for the edge with
 // the given name in this mutation.
 func (m *OrganizationUsersMutation) RemovedIDs(name string) []ent.Value {
+	switch name {
+	case organizationusers.EdgeUser:
+		ids := make([]ent.Value, 0, len(m.removeduser))
+		for id := range m.removeduser {
+			ids = append(ids, id)
+		}
+		return ids
+	case organizationusers.EdgeOrganization:
+		ids := make([]ent.Value, 0, len(m.removedorganization))
+		for id := range m.removedorganization {
+			ids = append(ids, id)
+		}
+		return ids
+	}
 	return nil
 }
 
@@ -1109,12 +1165,6 @@ func (m *OrganizationUsersMutation) EdgeCleared(name string) bool {
 // if that edge is not defined in the schema.
 func (m *OrganizationUsersMutation) ClearEdge(name string) error {
 	switch name {
-	case organizationusers.EdgeUser:
-		m.ClearUser()
-		return nil
-	case organizationusers.EdgeOrganization:
-		m.ClearOrganization()
-		return nil
 	}
 	return fmt.Errorf("unknown OrganizationUsers unique edge %s", name)
 }

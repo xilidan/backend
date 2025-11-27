@@ -15,12 +15,21 @@ var (
 		{Name: "creator_id", Type: field.TypeUUID},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "organization_users_organization", Type: field.TypeUUID, Nullable: true},
 	}
 	// OrganizationsTable holds the schema information for the "organizations" table.
 	OrganizationsTable = &schema.Table{
 		Name:       "organizations",
 		Columns:    OrganizationsColumns,
 		PrimaryKey: []*schema.Column{OrganizationsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "organizations_organization_users_organization",
+				Columns:    []*schema.Column{OrganizationsColumns[5]},
+				RefColumns: []*schema.Column{OrganizationUsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
 	}
 	// OrganizationUsersColumns holds the columns for the "organization_users" table.
 	OrganizationUsersColumns = []*schema.Column{
@@ -28,8 +37,6 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "organization_users", Type: field.TypeUUID, Nullable: true},
-		{Name: "organization_users_user", Type: field.TypeUUID},
-		{Name: "organization_users_organization", Type: field.TypeUUID},
 		{Name: "user_organizations", Type: field.TypeUUID, Nullable: true},
 	}
 	// OrganizationUsersTable holds the schema information for the "organization_users" table.
@@ -45,20 +52,8 @@ var (
 				OnDelete:   schema.SetNull,
 			},
 			{
-				Symbol:     "organization_users_users_user",
-				Columns:    []*schema.Column{OrganizationUsersColumns[4]},
-				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.NoAction,
-			},
-			{
-				Symbol:     "organization_users_organizations_organization",
-				Columns:    []*schema.Column{OrganizationUsersColumns[5]},
-				RefColumns: []*schema.Column{OrganizationsColumns[0]},
-				OnDelete:   schema.NoAction,
-			},
-			{
 				Symbol:     "organization_users_users_organizations",
-				Columns:    []*schema.Column{OrganizationUsersColumns[6]},
+				Columns:    []*schema.Column{OrganizationUsersColumns[4]},
 				RefColumns: []*schema.Column{UsersColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -88,6 +83,7 @@ var (
 		{Name: "password_hash", Type: field.TypeString},
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "organization_users_user", Type: field.TypeUUID, Nullable: true},
 		{Name: "user_position", Type: field.TypeInt, Nullable: true},
 	}
 	// UsersTable holds the schema information for the "users" table.
@@ -97,8 +93,14 @@ var (
 		PrimaryKey: []*schema.Column{UsersColumns[0]},
 		ForeignKeys: []*schema.ForeignKey{
 			{
-				Symbol:     "users_positions_position",
+				Symbol:     "users_organization_users_user",
 				Columns:    []*schema.Column{UsersColumns[8]},
+				RefColumns: []*schema.Column{OrganizationUsersColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+			{
+				Symbol:     "users_positions_position",
+				Columns:    []*schema.Column{UsersColumns[9]},
 				RefColumns: []*schema.Column{PositionsColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -114,9 +116,9 @@ var (
 )
 
 func init() {
+	OrganizationsTable.ForeignKeys[0].RefTable = OrganizationUsersTable
 	OrganizationUsersTable.ForeignKeys[0].RefTable = OrganizationsTable
 	OrganizationUsersTable.ForeignKeys[1].RefTable = UsersTable
-	OrganizationUsersTable.ForeignKeys[2].RefTable = OrganizationsTable
-	OrganizationUsersTable.ForeignKeys[3].RefTable = UsersTable
-	UsersTable.ForeignKeys[0].RefTable = PositionsTable
+	UsersTable.ForeignKeys[0].RefTable = OrganizationUsersTable
+	UsersTable.ForeignKeys[1].RefTable = PositionsTable
 }

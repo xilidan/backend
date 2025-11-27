@@ -28,8 +28,9 @@ type Organization struct {
 	UpdatedAt time.Time `json:"updated_at,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the OrganizationQuery when eager-loading is set.
-	Edges        OrganizationEdges `json:"edges"`
-	selectValues sql.SelectValues
+	Edges                           OrganizationEdges `json:"edges"`
+	organization_users_organization *uuid.UUID
+	selectValues                    sql.SelectValues
 }
 
 // OrganizationEdges holds the relations/edges for other nodes in the graph.
@@ -61,6 +62,8 @@ func (*Organization) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullTime)
 		case organization.FieldID, organization.FieldCreatorID:
 			values[i] = new(uuid.UUID)
+		case organization.ForeignKeys[0]: // organization_users_organization
+			values[i] = &sql.NullScanner{S: new(uuid.UUID)}
 		default:
 			values[i] = new(sql.UnknownType)
 		}
@@ -105,6 +108,13 @@ func (_m *Organization) assignValues(columns []string, values []any) error {
 				return fmt.Errorf("unexpected type %T for field updated_at", values[i])
 			} else if value.Valid {
 				_m.UpdatedAt = value.Time
+			}
+		case organization.ForeignKeys[0]:
+			if value, ok := values[i].(*sql.NullScanner); !ok {
+				return fmt.Errorf("unexpected type %T for field organization_users_organization", values[i])
+			} else if value.Valid {
+				_m.organization_users_organization = new(uuid.UUID)
+				*_m.organization_users_organization = *value.S.(*uuid.UUID)
 			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])

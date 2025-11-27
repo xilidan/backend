@@ -151,7 +151,7 @@ func HasUser() predicate.OrganizationUsers {
 	return predicate.OrganizationUsers(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, UserTable, UserColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, UserTable, UserColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
@@ -174,7 +174,7 @@ func HasOrganization() predicate.OrganizationUsers {
 	return predicate.OrganizationUsers(func(s *sql.Selector) {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(Table, FieldID),
-			sqlgraph.Edge(sqlgraph.M2O, false, OrganizationTable, OrganizationColumn),
+			sqlgraph.Edge(sqlgraph.O2M, false, OrganizationTable, OrganizationColumn),
 		)
 		sqlgraph.HasNeighbors(s, step)
 	})
