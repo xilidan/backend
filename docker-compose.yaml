@@ -55,9 +55,52 @@ services:
       timeout: 5s
       retries: 5
 
+  codereview-service:
+    build:
+      context: .
+      dockerfile: ./deploy/codereview/Dockerfile
+    container_name: codereview-service
+    ports:
+      - "8001:8000"
+    restart: unless-stopped
+    networks:
+      - app-network
+    environment:
+      - SERVICE_NAME=codereview
+      - SERVICE_HOST=0.0.0.0
+      - SERVICE_PORT=8000
+      - LOG_LEVEL=INFO
+      - GITLAB_URL=${GITLAB_URL:-https://gitlab.com}
+      - GITLAB_TOKEN=${GITLAB_TOKEN:-}
+      - LLM_PROVIDER=${LLM_PROVIDER:-azure_openai}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_MODEL=${LLM_MODEL:-}
+      - AZURE_CONFIG_PATH=${AZURE_CONFIG_PATH:-instance.json}
+      - USE_MOCK_LLM=${USE_MOCK_LLM:-false}
+      - REPOSITORY_TYPE=${REPOSITORY_TYPE:-memory}
+      - REDIS_URL=${REDIS_URL:-redis://codereview-redis:6379/0}
+    # Uncomment if using Redis
+    # depends_on:
+    #   - codereview-redis
+
+  codereview-redis:
+    image: redis:7-alpine
+    container_name: codereview-redis
+    restart: unless-stopped
+    networks:
+      - app-network
+    volumes:
+      - codereview-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+
 networks:
   app-network:
     driver: bridge
 
 volumes:
   sso-db-data:
+  codereview-redis-data:
