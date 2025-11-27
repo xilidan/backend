@@ -10,6 +10,18 @@ import (
 )
 
 func (s *storage) CreateOrganization(ctx context.Context, req *entity.Organization, userIDs []uuid.UUID, creatorID uuid.UUID) (*entity.Organization, error) {
+	// Remove users from any existing organizations first
+	// This is necessary because of the Unique() constraint on organization_users.user edge
+	for _, userID := range userIDs {
+		_, err := s.OrganizationUsers.Delete().
+			Where(organizationusers.HasUserWith(user.ID(userID))).
+			Exec(ctx)
+		if err != nil {
+			// Continue even if deletion fails (user might not be in any org)
+			// This is not critical for the operation
+		}
+	}
+
 	organization, err := s.Organization.Create().
 		SetName(req.Name).
 		SetCreatorID(creatorID).
