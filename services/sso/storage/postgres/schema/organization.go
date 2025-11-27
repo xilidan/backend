@@ -19,6 +19,7 @@ func (Organization) Fields() []ent.Field {
 		field.UUID("id", uuid.UUID{}).
 			Default((func() uuid.UUID)(gen.UUID())),
 		field.String("name"),
+		field.UUID("creator_id", uuid.UUID{}),
 		field.Time("created_at").Default(time.Now()),
 		field.Time("updated_at").Default(time.Now()),
 	}

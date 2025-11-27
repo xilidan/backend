@@ -28,6 +28,12 @@ func (_c *OrganizationCreate) SetName(v string) *OrganizationCreate {
 	return _c
 }
 
+// SetCreatorID sets the "creator_id" field.
+func (_c *OrganizationCreate) SetCreatorID(v uuid.UUID) *OrganizationCreate {
+	_c.mutation.SetCreatorID(v)
+	return _c
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_c *OrganizationCreate) SetCreatedAt(v time.Time) *OrganizationCreate {
 	_c.mutation.SetCreatedAt(v)
@@ -139,6 +145,9 @@ func (_c *OrganizationCreate) check() error {
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Organization.name"`)}
 	}
+	if _, ok := _c.mutation.CreatorID(); !ok {
+		return &ValidationError{Name: "creator_id", err: errors.New(`ent: missing required field "Organization.creator_id"`)}
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Organization.created_at"`)}
 	}
@@ -183,6 +192,10 @@ func (_c *OrganizationCreate) createSpec() (*Organization, *sqlgraph.CreateSpec)
 	if value, ok := _c.mutation.Name(); ok {
 		_spec.SetField(organization.FieldName, field.TypeString, value)
 		_node.Name = value
+	}
+	if value, ok := _c.mutation.CreatorID(); ok {
+		_spec.SetField(organization.FieldCreatorID, field.TypeUUID, value)
+		_node.CreatorID = value
 	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(organization.FieldCreatedAt, field.TypeTime, value)

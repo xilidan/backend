@@ -44,6 +44,20 @@ func (_u *OrganizationUpdate) SetNillableName(v *string) *OrganizationUpdate {
 	return _u
 }
 
+// SetCreatorID sets the "creator_id" field.
+func (_u *OrganizationUpdate) SetCreatorID(v uuid.UUID) *OrganizationUpdate {
+	_u.mutation.SetCreatorID(v)
+	return _u
+}
+
+// SetNillableCreatorID sets the "creator_id" field if the given value is not nil.
+func (_u *OrganizationUpdate) SetNillableCreatorID(v *uuid.UUID) *OrganizationUpdate {
+	if v != nil {
+		_u.SetCreatorID(*v)
+	}
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *OrganizationUpdate) SetCreatedAt(v time.Time) *OrganizationUpdate {
 	_u.mutation.SetCreatedAt(v)
@@ -152,6 +166,9 @@ func (_u *OrganizationUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(organization.FieldName, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.CreatorID(); ok {
+		_spec.SetField(organization.FieldCreatorID, field.TypeUUID, value)
+	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(organization.FieldCreatedAt, field.TypeTime, value)
 	}
@@ -233,6 +250,20 @@ func (_u *OrganizationUpdateOne) SetName(v string) *OrganizationUpdateOne {
 func (_u *OrganizationUpdateOne) SetNillableName(v *string) *OrganizationUpdateOne {
 	if v != nil {
 		_u.SetName(*v)
+	}
+	return _u
+}
+
+// SetCreatorID sets the "creator_id" field.
+func (_u *OrganizationUpdateOne) SetCreatorID(v uuid.UUID) *OrganizationUpdateOne {
+	_u.mutation.SetCreatorID(v)
+	return _u
+}
+
+// SetNillableCreatorID sets the "creator_id" field if the given value is not nil.
+func (_u *OrganizationUpdateOne) SetNillableCreatorID(v *uuid.UUID) *OrganizationUpdateOne {
+	if v != nil {
+		_u.SetCreatorID(*v)
 	}
 	return _u
 }
@@ -374,6 +405,9 @@ func (_u *OrganizationUpdateOne) sqlSave(ctx context.Context) (_node *Organizati
 	}
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(organization.FieldName, field.TypeString, value)
+	}
+	if value, ok := _u.mutation.CreatorID(); ok {
+		_spec.SetField(organization.FieldCreatorID, field.TypeUUID, value)
 	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(organization.FieldCreatedAt, field.TypeTime, value)

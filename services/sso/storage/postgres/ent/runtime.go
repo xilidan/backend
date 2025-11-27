@@ -20,11 +20,11 @@ func init() {
 	organizationFields := schema.Organization{}.Fields()
 	_ = organizationFields
 	// organizationDescCreatedAt is the schema descriptor for created_at field.
-	organizationDescCreatedAt := organizationFields[2].Descriptor()
+	organizationDescCreatedAt := organizationFields[3].Descriptor()
 	// organization.DefaultCreatedAt holds the default value on creation for the created_at field.
 	organization.DefaultCreatedAt = organizationDescCreatedAt.Default.(time.Time)
 	// organizationDescUpdatedAt is the schema descriptor for updated_at field.
-	organizationDescUpdatedAt := organizationFields[3].Descriptor()
+	organizationDescUpdatedAt := organizationFields[4].Descriptor()
 	// organization.DefaultUpdatedAt holds the default value on creation for the updated_at field.
 	organization.DefaultUpdatedAt = organizationDescUpdatedAt.Default.(time.Time)
 	// organizationDescID is the schema descriptor for id field.

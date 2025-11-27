@@ -76,6 +76,7 @@ message CreateOrganizationReq {
   string name = 1;
   repeated Position positions = 2;
   repeated User users = 3;
+  string user_id = 4;
 }
 
 message CreateOrganizationResp {

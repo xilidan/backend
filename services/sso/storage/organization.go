@@ -9,9 +9,10 @@ import (
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/user"
 )
 
-func (s *storage) CreateOrganization(ctx context.Context, req *entity.Organization, userIDs []uuid.UUID) (*entity.Organization, error) {
+func (s *storage) CreateOrganization(ctx context.Context, req *entity.Organization, userIDs []uuid.UUID, creatorID uuid.UUID) (*entity.Organization, error) {
 	organization, err := s.Organization.Create().
 		SetName(req.Name).
+		SetCreatorID(creatorID).
 		AddUserIDs(userIDs...).
 		Save(ctx)
 	if err != nil {

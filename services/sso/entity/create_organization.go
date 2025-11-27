@@ -5,6 +5,7 @@ type (
 		Name      string
 		Users     []*User
 		Positions []*Position
+		UserID    string
 	}
 
 	CreateOrganizationResp struct {

@@ -41,6 +41,7 @@ type OrganizationMutation struct {
 	typ           string
 	id            *uuid.UUID
 	name          *string
+	creator_id    *uuid.UUID
 	created_at    *time.Time
 	updated_at    *time.Time
 	clearedFields map[string]struct{}
@@ -190,6 +191,42 @@ func (m *OrganizationMutation) OldName(ctx context.Context) (v string, err error
 // ResetName resets all changes to the "name" field.
 func (m *OrganizationMutation) ResetName() {
 	m.name = nil
+}
+
+// SetCreatorID sets the "creator_id" field.
+func (m *OrganizationMutation) SetCreatorID(u uuid.UUID) {
+	m.creator_id = &u
+}
+
+// CreatorID returns the value of the "creator_id" field in the mutation.
+func (m *OrganizationMutation) CreatorID() (r uuid.UUID, exists bool) {
+	v := m.creator_id
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatorID returns the old "creator_id" field's value of the Organization entity.
+// If the Organization object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *OrganizationMutation) OldCreatorID(ctx context.Context) (v uuid.UUID, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatorID is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatorID requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatorID: %w", err)
+	}
+	return oldValue.CreatorID, nil
+}
+
+// ResetCreatorID resets all changes to the "creator_id" field.
+func (m *OrganizationMutation) ResetCreatorID() {
+	m.creator_id = nil
 }
 
 // SetCreatedAt sets the "created_at" field.
@@ -352,9 +389,12 @@ func (m *OrganizationMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *OrganizationMutation) Fields() []string {
-	fields := make([]string, 0, 3)
+	fields := make([]string, 0, 4)
 	if m.name != nil {
 		fields = append(fields, organization.FieldName)
+	}
+	if m.creator_id != nil {
+		fields = append(fields, organization.FieldCreatorID)
 	}
 	if m.created_at != nil {
 		fields = append(fields, organization.FieldCreatedAt)
@@ -372,6 +412,8 @@ func (m *OrganizationMutation) Field(name string) (ent.Value, bool) {
 	switch name {
 	case organization.FieldName:
 		return m.Name()
+	case organization.FieldCreatorID:
+		return m.CreatorID()
 	case organization.FieldCreatedAt:
 		return m.CreatedAt()
 	case organization.FieldUpdatedAt:
@@ -387,6 +429,8 @@ func (m *OrganizationMutation) OldField(ctx context.Context, name string) (ent.V
 	switch name {
 	case organization.FieldName:
 		return m.OldName(ctx)
+	case organization.FieldCreatorID:
+		return m.OldCreatorID(ctx)
 	case organization.FieldCreatedAt:
 		return m.OldCreatedAt(ctx)
 	case organization.FieldUpdatedAt:
@@ -406,6 +450,13 @@ func (m *OrganizationMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetName(v)
+		return nil
+	case organization.FieldCreatorID:
+		v, ok := value.(uuid.UUID)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatorID(v)
 		return nil
 	case organization.FieldCreatedAt:
 		v, ok := value.(time.Time)
@@ -472,6 +523,9 @@ func (m *OrganizationMutation) ResetField(name string) error {
 	switch name {
 	case organization.FieldName:
 		m.ResetName()
+		return nil
+	case organization.FieldCreatorID:
+		m.ResetCreatorID()
 		return nil
 	case organization.FieldCreatedAt:
 		m.ResetCreatedAt()

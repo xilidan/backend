@@ -113,12 +113,18 @@ func (u *usecase) CreateOrganization(ctx context.Context, req *entity.CreateOrga
 		userIDs[i] = userUUID
 	}
 
+	creatorID, err := uuid.Parse(req.UserID)
+	if err != nil {
+		return nil, err
+	}
+
 	organization, err := u.Storage.CreateOrganization(
 		ctx,
 		&entity.Organization{
 			Name: req.Name,
 		},
 		userIDs,
+		creatorID,
 	)
 	if err != nil {
 		return nil, err

@@ -61,6 +61,11 @@ func Name(v string) predicate.Organization {
 	return predicate.Organization(sql.FieldEQ(FieldName, v))
 }
 
+// CreatorID applies equality check predicate on the "creator_id" field. It's identical to CreatorIDEQ.
+func CreatorID(v uuid.UUID) predicate.Organization {
+	return predicate.Organization(sql.FieldEQ(FieldCreatorID, v))
+}
+
 // CreatedAt applies equality check predicate on the "created_at" field. It's identical to CreatedAtEQ.
 func CreatedAt(v time.Time) predicate.Organization {
 	return predicate.Organization(sql.FieldEQ(FieldCreatedAt, v))
@@ -134,6 +139,46 @@ func NameEqualFold(v string) predicate.Organization {
 // NameContainsFold applies the ContainsFold predicate on the "name" field.
 func NameContainsFold(v string) predicate.Organization {
 	return predicate.Organization(sql.FieldContainsFold(FieldName, v))
+}
+
+// CreatorIDEQ applies the EQ predicate on the "creator_id" field.
+func CreatorIDEQ(v uuid.UUID) predicate.Organization {
+	return predicate.Organization(sql.FieldEQ(FieldCreatorID, v))
+}
+
+// CreatorIDNEQ applies the NEQ predicate on the "creator_id" field.
+func CreatorIDNEQ(v uuid.UUID) predicate.Organization {
+	return predicate.Organization(sql.FieldNEQ(FieldCreatorID, v))
+}
+
+// CreatorIDIn applies the In predicate on the "creator_id" field.
+func CreatorIDIn(vs ...uuid.UUID) predicate.Organization {
+	return predicate.Organization(sql.FieldIn(FieldCreatorID, vs...))
+}
+
+// CreatorIDNotIn applies the NotIn predicate on the "creator_id" field.
+func CreatorIDNotIn(vs ...uuid.UUID) predicate.Organization {
+	return predicate.Organization(sql.FieldNotIn(FieldCreatorID, vs...))
+}
+
+// CreatorIDGT applies the GT predicate on the "creator_id" field.
+func CreatorIDGT(v uuid.UUID) predicate.Organization {
+	return predicate.Organization(sql.FieldGT(FieldCreatorID, v))
+}
+
+// CreatorIDGTE applies the GTE predicate on the "creator_id" field.
+func CreatorIDGTE(v uuid.UUID) predicate.Organization {
+	return predicate.Organization(sql.FieldGTE(FieldCreatorID, v))
+}
+
+// CreatorIDLT applies the LT predicate on the "creator_id" field.
+func CreatorIDLT(v uuid.UUID) predicate.Organization {
+	return predicate.Organization(sql.FieldLT(FieldCreatorID, v))
+}
+
+// CreatorIDLTE applies the LTE predicate on the "creator_id" field.
+func CreatorIDLTE(v uuid.UUID) predicate.Organization {
+	return predicate.Organization(sql.FieldLTE(FieldCreatorID, v))
 }
 
 // CreatedAtEQ applies the EQ predicate on the "created_at" field.
