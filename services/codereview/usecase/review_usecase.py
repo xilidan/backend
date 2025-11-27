@@ -39,7 +39,12 @@ class ReviewUsecase:
             "Use type hints",
         ]
     
-    async def review_merge_request(self, project_id: int, mr_iid: int) -> ReviewResult:
+    async def review_merge_request(
+        self,
+        project_id: int,
+        mr_iid: int,
+        trigger_user_email: str | None = None
+    ) -> ReviewResult:
         logger.info(f"Starting review for MR {project_id}/{mr_iid}")
         
         mr = await self.gitlab_client.get_merge_request(project_id, mr_iid)
@@ -55,8 +60,13 @@ class ReviewUsecase:
         )
         
         # Handle user rating
-        if mr.author_email:
-            await self._update_user_rating(mr.author_email, quality_score)
+        # Prefer the email from the webhook trigger if available, otherwise fallback to MR author
+        user_email = trigger_user_email or mr.author_email
+        
+        if user_email:
+            await self._update_user_rating(user_email, quality_score)
+        else:
+            logger.warning("No user email found for rating update")
         
         result = ReviewResult(
             mr_id=mr_iid,  # Use mr_iid (project-scoped) not mr.id (global)
@@ -130,7 +140,11 @@ class ReviewUsecase:
         return label_map.get(recommendation, ["ai-reviewed"])
     
     async def process_webhook_event(
-        self, project_id: int, mr_iid: int, action: str
+        self,
+        project_id: int,
+        mr_iid: int,
+        action: str,
+        trigger_user_email: str | None = None,
     ) -> None:
         logger.info(f"Processing webhook event: {action} for MR {project_id}/{mr_iid}")
         
@@ -139,7 +153,7 @@ class ReviewUsecase:
             return
         
         try:
-            await self.review_merge_request(project_id, mr_iid)
+            await self.review_merge_request(project_id, mr_iid, trigger_user_email)
             
             await self.post_review_to_gitlab(project_id, mr_iid)
             

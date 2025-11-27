@@ -47,11 +47,14 @@ async def gitlab_webhook(
         mr_iid = attrs.get("iid")
         action = attrs.get("action")
         
+        user = payload.get("user", {})
+        trigger_user_email = user.get("email")
+        
         if not project_id or not mr_iid:
             logger.error("Missing project_id or mr_iid in webhook payload")
             raise HTTPException(status_code=400, detail="Invalid webhook payload")
         
-        logger.info(f"Processing MR {project_id}/{mr_iid}, action: {action}")
+        logger.info(f"Processing MR {project_id}/{mr_iid}, action: {action}, triggered by: {trigger_user_email}")
         
         if review_usecase:
             background_tasks.add_task(
@@ -59,6 +62,7 @@ async def gitlab_webhook(
                 project_id,
                 mr_iid,
                 action,
+                trigger_user_email,
             )
         else:
             logger.error("Review usecase not initialized")
@@ -121,6 +125,7 @@ async def trigger_review(
         project_id,
         mr_iid,
         "manual",
+        None,  # No trigger user email for manual trigger yet
     )
     
     return {
