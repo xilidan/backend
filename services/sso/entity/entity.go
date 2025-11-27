@@ -31,6 +31,14 @@ type (
 		Name       string
 		IsReviewer bool
 	}
+
+	GetPositionsReq struct {
+		OrganizationID string
+	}
+
+	GetPositionsResp struct {
+		Positions []*Position
+	}
 )
 
 func MakeUserEntToEntity(user *ent.User) *User {

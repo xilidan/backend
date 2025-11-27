@@ -6,8 +6,25 @@ import (
 	"github.com/google/uuid"
 	"github.com/xilidan/backend/services/sso/entity"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organization"
+	"github.com/xilidan/backend/services/sso/storage/postgres/ent/position"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/user"
 )
+
+func (s *storage) GetPositions(ctx context.Context, organizationID string) ([]*entity.Position, error) {
+	orgUUID, err := uuid.Parse(organizationID)
+	if err != nil {
+		return nil, err
+	}
+
+	positions, err := s.Position.Query().
+		Where(position.HasUsersWith(user.HasOrganizationsWith(organization.ID(orgUUID)))).
+		All(ctx)
+	if err != nil {
+		return nil, err
+	}
+
+	return entity.MakePositionsArrayEntToEntity(positions), nil
+}
 
 func (s *storage) CreateOrganization(ctx context.Context, req *entity.Organization, userIDs []uuid.UUID, creatorID uuid.UUID) (*entity.Organization, error) {
 	organization, err := s.Organization.Create().

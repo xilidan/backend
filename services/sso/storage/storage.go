@@ -22,6 +22,7 @@ type Storage interface {
 	UpdateOrganization(ctx context.Context, req *entity.Organization, userIDs []uuid.UUID) (*entity.Organization, error)
 
 	CreatePosition(ctx context.Context, req *entity.Position) (*entity.Position, error)
+	GetPositions(ctx context.Context, organizationID string) ([]*entity.Position, error)
 }
 
 func New(client *ent.Client) Storage {

@@ -274,3 +274,25 @@ func (s *Server) UpdateOrganization(ctx context.Context, req *pb.UpdateOrganizat
 		},
 	}, nil
 }
+
+func (s *Server) GetPositions(ctx context.Context, req *pb.GetPositionsReq) (*pb.GetPositionsResp, error) {
+	result, err := s.usecase.GetPositions(ctx, &entity.GetPositionsReq{
+		OrganizationID: req.OrganizationId,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	pbPositions := make([]*pb.Position, len(result.Positions))
+	for i, p := range result.Positions {
+		pbPositions[i] = &pb.Position{
+			Id:         int64(p.ID),
+			Name:       p.Name,
+			IsReviewer: p.IsReviewer,
+		}
+	}
+
+	return &pb.GetPositionsResp{
+		Positions: pbPositions,
+	}, nil
+}
