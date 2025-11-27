@@ -111,5 +111,26 @@ func (h *handler) GetOrganizationHandler(w http.ResponseWriter, r *http.Request)
 }
 
 func (h *handler) UpdateOrganizationHandler(w http.ResponseWriter, r *http.Request) {
-	json.WriteError(w, http.StatusInternalServerError, fmt.Errorf("not implemented"))
+	req := &pb.UpdateOrganizationReq{}
+	json.ParseProtoJSON(r, req)
+
+	token, err := jwt.ParseTokenFromHeader(r)
+	if err != nil {
+		json.WriteError(w, http.StatusForbidden, fmt.Errorf("access denied"))
+		return
+	}
+
+	_, err = jwt.ParseUserID(r.Context(), token, h.cfg.JWTSecret)
+	if err != nil {
+		json.WriteError(w, http.StatusForbidden, fmt.Errorf("access denied"))
+		return
+	}
+
+	res, err := h.SsoClient.UpdateOrganization(r.Context(), req)
+	if err != nil {
+		json.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	json.WriteProtoJSON(w, http.StatusOK, res)
 }
