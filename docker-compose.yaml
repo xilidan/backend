@@ -16,6 +16,49 @@ services:
     depends_on:
       - sso-service
 
+  meet-gateway:
+    build:
+      context: .
+      dockerfile: ./deploy/meet/Dockerfile
+    container_name: meet-gateway
+    ports:
+      - "8096:8080"
+    restart: unless-stopped
+    networks:
+      - app-network
+    environment:
+      - PORT=8080
+      - FIREFLIES_API_KEY=key
+      - SCRUM_PORT=8000
+      - SCRUM_URL=scrum-master
+    depends_on:
+      - scrum-master
+
+  asr-service:
+    build:
+      context: .
+      dockerfile: ./deploy/asr/Dockerfile
+    container_name: asr-service
+    restart: unless-stopped
+    networks:
+      - app-network
+    environment:
+      - PORT=50052
+    ports:
+      - "50052:50052"
+
+  scrum-master:
+    build:
+      context: ./services/scrum
+    container_name: scrum-master
+    restart: unless-stopped
+    networks:
+      - app-network
+    ports:
+      - "8000:8000"
+    environment:
+      - PORT=8000
+
   sso-service:
     build:
       context: .

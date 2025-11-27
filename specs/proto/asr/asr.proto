@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package asr;
+
+option go_package = "specs/proto/asr";
+
+service AsrService {
+  rpc HealthCheck (HealthCheckReq) returns (HealthCheckResp);
+  rpc TranscribeAudio (TranscribeAudioReq) returns (TranscribeAudioResp);
+  rpc GetTranscription (GetTranscriptionReq) returns (GetTranscriptionResp);
+  rpc SaveTranscription (SaveTranscriptionReq) returns (SaveTranscriptionResp);
+}
+
+message HealthCheckReq {}
+
+message HealthCheckResp {
+  bool status = 1;
+}
+
+message TranscribeAudioReq {
+  bytes audio_data = 1;
+  string meeting_id = 2;
+  string format = 3; // wav, mp3, etc.
+  int32 sample_rate = 4;
+}
+
+message TranscribeAudioResp {
+  string text = 1;
+  string meeting_id = 2;
+  float confidence = 3;
+}
+
+message GetTranscriptionReq {
+  string meeting_id = 1;
+}
+
+message GetTranscriptionResp {
+  string meeting_id = 1;
+  string full_text = 2;
+  int64 created_at = 3;
+  int64 updated_at = 4;
+}
+
+message SaveTranscriptionReq {
+  string meeting_id = 1;
+  string text = 2;
+}
+
+message SaveTranscriptionResp {
+  bool success = 1;
+  string meeting_id = 2;
+}
