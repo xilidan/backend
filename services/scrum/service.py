@@ -133,20 +133,50 @@ class JiraScrumMasterService:
             response.raise_for_status()
             org_data = response.json()
             
-            # Ensure users have 'skills' field for assignment logic
-            # If the backend doesn't provide skills, we might derive them from job title
+            # Derive skills from job titles since backend doesn't provide them
             for user in org_data.get("users", []):
                 if "skills" not in user:
-                    # Derive skills from job title (simple heuristic)
                     job = user.get("job", "").lower()
                     skills = []
-                    if "engineer" in job or "developer" in job:
-                        skills.extend(["Python", "SQL"])
-                    if "senior" in job:
-                        skills.extend(["Architecture", "AWS"])
-                    if "qa" in job or "test" in job:
-                        skills.extend(["Testing", "Selenium"])
-                    user["skills"] = skills
+                    
+                    # Backend/Server skills
+                    if any(word in job for word in ["backend", "server", "api"]):
+                        skills.extend(["Backend", "API", "Python", "FastAPI", "SQL", "Database"])
+                    
+                    # Frontend skills
+                    if any(word in job for word in ["frontend", "ui", "ux"]):
+                        skills.extend(["Frontend", "UI", "UX", "React", "TypeScript", "CSS"])
+                    
+                    # Mobile skills
+                    if any(word in job for word in ["mobile", "ios", "android", "app"]):
+                        skills.extend(["Mobile", "iOS", "Android", "Swift", "Kotlin"])
+                    
+                    # DevOps/Infrastructure
+                    if any(word in job for word in ["devops", "infrastructure", "cloud"]):
+                        skills.extend(["DevOps", "AWS", "Docker", "Kubernetes", "CI/CD"])
+                    
+                    # QA/Testing
+                    if any(word in job for word in ["qa", "test", "quality"]):
+                        skills.extend(["Testing", "QA", "Automation", "Selenium"])
+                    
+                    # Data/Analytics
+                    if any(word in job for word in ["data", "analytics", "ml", "ai"]):
+                        skills.extend(["Data", "Analytics", "ML", "Python", "SQL"])
+                    
+                    # Security
+                    if any(word in job for word in ["security", "auth"]):
+                        skills.extend(["Security", "Authentication", "Encryption"])
+                    
+                    # Senior/Lead positions get architecture skills
+                    if any(word in job for word in ["senior", "lead", "principal", "architect"]):
+                        skills.extend(["Architecture", "Design", "Leadership"])
+                    
+                    # General engineering skills
+                    if any(word in job for word in ["engineer", "developer", "programmer"]):
+                        skills.extend(["Programming", "Development"])
+                    
+                    user["skills"] = list(set(skills))  # Remove duplicates
+                    print(f"Derived skills for {user.get('name')} {user.get('surname')} ({job}): {user['skills']}")
             
             return org_data
         except requests.RequestException as e:
@@ -172,7 +202,9 @@ class JiraScrumMasterService:
         - summary: A concise title.
         - description: Detailed description.
         - type: "Epic", "Story", or "Subtask".
-        - required_skills: A list of technical skills required (e.g., Python, React, SQL).
+        - required_skills: A list of broad skill categories required (e.g., "Backend", "Frontend", "Mobile", "iOS", "Android", "DevOps", "QA", "Security", "UI", "UX", "Architecture").
+        
+        Use BROAD skill categories that match common job roles, not specific technologies.
         
         Example structure:
         [
@@ -225,18 +257,34 @@ class JiraScrumMasterService:
     def assign_tasks(self, tasks: List[Dict[str, Any]], organization: Dict[str, Any]) -> List[Dict[str, Any]]:
         users = organization.get("users", [])
         
+        print(f"\n=== Assignment Debug ===")
+        print(f"Organization: {organization.get('name', 'Unknown')}")
+        print(f"Number of users: {len(users)}")
+        for user in users:
+            print(f"  - {user.get('name', '')} {user.get('surname', '')}: {user.get('skills', [])}")
+        
         def find_best_match(required_skills):
             best_match = None
             max_overlap = -1
+            
+            print(f"\nFinding match for skills: {required_skills}")
+            
             for user in users:
-                user_skills = set(user.get("skills", [])) # Assuming we add skills to the mock or derive them
-                # If skills are not in the mock, we might match by job title or position
-                # For this mock, I added 'skills' to the user object above for better matching
-                
+                user_skills = set(user.get("skills", []))
                 overlap = len(set(required_skills).intersection(user_skills))
+                
+                if overlap > 0:
+                    print(f"  - {user.get('name')} {user.get('surname')}: {overlap} matches")
+                
                 if overlap > max_overlap:
                     max_overlap = overlap
                     best_match = user
+            
+            if best_match:
+                print(f"  → Best match: {best_match.get('name')} {best_match.get('surname')} ({max_overlap} skills)")
+            else:
+                print(f"  → No match found")
+            
             return best_match
 
         def process_item(item):
