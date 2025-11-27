@@ -105,10 +105,23 @@ func (s *Server) CreateOrganization(ctx context.Context, req *pb.CreateOrganizat
 			surname = uReq.Surname
 		}
 
+		var job *string
+		if uReq.Job != "" {
+			job = &uReq.Job
+		}
+
 		usersReq[i] = &entity.User{
 			Name:    uReq.Name,
 			Surname: surname,
 			Email:   uReq.Email,
+			Job:     job,
+		}
+
+		// Set position if position_id is provided
+		if uReq.PositionId > 0 {
+			usersReq[i].Position = &entity.Position{
+				ID: int(uReq.PositionId),
+			}
 		}
 	}
 	result, err := s.usecase.CreateOrganization(ctx, &entity.CreateOrganizationReq{
@@ -139,13 +152,18 @@ func (s *Server) CreateOrganization(ctx context.Context, req *pb.CreateOrganizat
 			positionId = int64(u.Position.ID)
 		}
 
+		job := ""
+		if u.Job != nil {
+			job = *u.Job
+		}
+
 		pbUsers[i] = &pb.User{
 			Id:         u.ID,
 			Name:       u.Name,
 			Surname:    u.Surname,
 			Email:      u.Email,
 			PositionId: positionId,
-			Job:        "",
+			Job:        job,
 		}
 	}
 
@@ -183,13 +201,18 @@ func (s *Server) GetOrganization(ctx context.Context, req *pb.GetOrganizationReq
 			positionId = int64(u.Position.ID)
 		}
 
+		job := ""
+		if u.Job != nil {
+			job = *u.Job
+		}
+
 		pbUsers[i] = &pb.User{
 			Id:         u.ID,
 			Name:       u.Name,
 			Surname:    u.Surname,
 			Email:      u.Email,
 			PositionId: positionId,
-			Job:        "",
+			Job:        job,
 		}
 	}
 

@@ -6,6 +6,7 @@ type (
 		Name            string
 		Surname         *string
 		PositionID      int
+		Job             *string
 		Password        string
 		PasswordConfirm string
 	}
