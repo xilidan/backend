@@ -115,6 +115,7 @@ func (s *Server) CreateOrganization(ctx context.Context, req *pb.CreateOrganizat
 		Name:      req.Name,
 		Positions: postionsReq,
 		Users:     usersReq,
+		UserID:    req.UserId,
 	})
 	if err != nil {
 		return nil, err
