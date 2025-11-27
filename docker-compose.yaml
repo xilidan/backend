@@ -16,49 +16,6 @@ services:
     depends_on:
       - sso-service
 
-  meet-gateway:
-    build:
-      context: .
-      dockerfile: ./deploy/meet/Dockerfile
-    container_name: meet-gateway
-    ports:
-      - "8096:8080"
-    restart: unless-stopped
-    networks:
-      - app-network
-    environment:
-      - PORT=8080
-      - FIREFLIES_API_KEY=key
-      - SCRUM_PORT=8000
-      - SCRUM_URL=scrum-master
-    depends_on:
-      - scrum-master
-
-  asr-service:
-    build:
-      context: .
-      dockerfile: ./deploy/asr/Dockerfile
-    container_name: asr-service
-    restart: unless-stopped
-    networks:
-      - app-network
-    environment:
-      - PORT=50052
-    ports:
-      - "50052:50052"
-
-  scrum-master:
-    build:
-      context: ./services/scrum
-    container_name: scrum-master
-    restart: unless-stopped
-    networks:
-      - app-network
-    ports:
-      - "8000:8000"
-    environment:
-      - PORT=8000
-
   sso-service:
     build:
       context: .
@@ -97,6 +54,34 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  scrum-ai-service:
+    build:
+      context: ./services/scrum
+      dockerfile: ../../deploy/scrum/Dockerfile
+    container_name: jira-ai-scrum-master
+    ports:
+      - "8000:8000"
+    environment:
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
+      - AZURE_OPENAI_DEPLOYMENT_NAME=${AZURE_OPENAI_DEPLOYMENT_NAME}
+      - API_VERSION=${API_VERSION}
+      - BACKEND_API_URL=${BACKEND_API_URL:-https://api.azed.kz/api/v1}
+    env_file:
+      - ./services/scrum/.env
+    volumes:
+      - ./services/scrum:/app
+      - /app/venv
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - app-network
 
   codereview-service:
     build:
