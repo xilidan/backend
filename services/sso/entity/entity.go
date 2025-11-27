@@ -87,8 +87,9 @@ func MakeOrganizationEntToEntity(organization *ent.Organization) *Organization {
 	users := []*User{}
 	if organization.Edges.Users != nil {
 		for _, orgUser := range organization.Edges.Users {
-			if orgUser.Edges.User != nil {
-				users = append(users, MakeUserEntToEntity(orgUser.Edges.User))
+			if orgUser.Edges.User != nil && len(orgUser.Edges.User) > 0 {
+				// After removing Unique(), User is now a slice
+				users = append(users, MakeUserEntToEntity(orgUser.Edges.User[0]))
 			}
 		}
 	}
