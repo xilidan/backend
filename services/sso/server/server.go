@@ -6,7 +6,7 @@ import (
 	config "github.com/xilidan/backend/config/sso"
 	"github.com/xilidan/backend/services/sso/entity"
 	"github.com/xilidan/backend/services/sso/usecase"
-	pb "github.com/xilidan/backend/specs/proto/specs/proto/sso"
+	pb "github.com/xilidan/backend/specs/proto/sso"
 	"google.golang.org/grpc"
 )
 

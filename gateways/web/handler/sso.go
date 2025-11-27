@@ -6,7 +6,7 @@ import (
 
 	"github.com/xilidan/backend/pkg/json"
 	"github.com/xilidan/backend/pkg/jwt"
-	pb "github.com/xilidan/backend/specs/proto/specs/proto/sso"
+	pb "github.com/xilidan/backend/specs/proto/sso"
 )
 
 func (h *handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
