@@ -7,4 +7,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]hierarchical task decomposition, file parsing, and organization integration.)
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
