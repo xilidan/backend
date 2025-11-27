@@ -243,10 +243,24 @@ func (s *Server) UpdateOrganization(ctx context.Context, req *pb.UpdateOrganizat
 		if u.Surname != nil {
 			surname = u.Surname
 		}
+
+		var job *string
+		if u.Job != "" {
+			job = &u.Job
+		}
+
 		users[i] = entity.User{
 			Name:    u.Name,
 			Surname: surname,
 			Email:   u.Email,
+			Job:     job,
+		}
+
+		// Set position if position_id is provided
+		if u.PositionId > 0 {
+			users[i].Position = &entity.Position{
+				ID: int(u.PositionId),
+			}
 		}
 	}
 
@@ -278,13 +292,19 @@ func (s *Server) UpdateOrganization(ctx context.Context, req *pb.UpdateOrganizat
 		if u.Position != nil {
 			posID = int64(u.Position.ID)
 		}
+
+		job := ""
+		if u.Job != nil {
+			job = *u.Job
+		}
+
 		pbUsers[i] = &pb.User{
 			Id:         u.ID,
 			Name:       u.Name,
 			Surname:    u.Surname,
 			Email:      u.Email,
 			PositionId: posID,
-			Job:        "",
+			Job:        job,
 		}
 	}
 

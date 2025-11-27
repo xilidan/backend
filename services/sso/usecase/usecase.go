@@ -175,11 +175,30 @@ func (u *usecase) UpdateOrganization(ctx context.Context, req *entity.UpdateOrga
 
 	userIDs := make([]uuid.UUID, len(req.Users))
 	for i, user := range req.Users {
+		// Check if user already exists by email
+		existingUser, err := u.Storage.GetUserByEmail(ctx, user.Email)
+		if err == nil && existingUser != nil {
+			// User already exists, use their ID
+			userUUID, parseErr := uuid.Parse(existingUser.ID)
+			if parseErr != nil {
+				return nil, parseErr
+			}
+			userIDs[i] = userUUID
+			continue
+		}
+
+		// Create new user
+		positionID := 0
+		if user.Position != nil {
+			positionID = user.Position.ID
+		}
+
 		entUser, err := u.Storage.CreateUser(ctx, &entity.RegitserRequest{
 			Name:       user.Name,
 			Surname:    user.Surname,
 			Email:      user.Email,
-			PositionID: positions[i].ID,
+			PositionID: positionID,
+			Job:        user.Job,
 			Password:   "",
 		})
 		if err != nil {
