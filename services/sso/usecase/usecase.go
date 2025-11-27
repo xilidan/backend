@@ -208,6 +208,15 @@ func (u *usecase) GetOrganization(ctx context.Context, req *entity.GetOrganizati
 		return nil, err
 	}
 
+	// Fetch positions for the organization
+	positions, err := u.Storage.GetPositions(ctx, organization.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Populate positions in the organization
+	organization.Positions = positions
+
 	return &entity.GetOrganizationResp{
 		Organization: organization,
 	}, nil
