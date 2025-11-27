@@ -13,7 +13,7 @@ class Settings(BaseSettings):
     gitlab_url: str = os.getenv("GITLAB_URL", "https://gitlab.com")
     gitlab_token: str = os.getenv("GITLAB_TOKEN", "")
     
-    llm_provider: str = os.getenv("LLM_PROVIDER", "azure_openai")  # openai, anthropic, azure_openai
+    llm_provider: str = os.getenv("LLM_PROVIDER_NAME", "azure_openai")  # openai, anthropic, azure_openai
     llm_api_key: str = os.getenv("LLM_API_KEY", "")
     llm_model: str = os.getenv("LLM_MODEL", "")
     azure_config_path: str = os.getenv("AZURE_CONFIG_PATH", "instance.json")

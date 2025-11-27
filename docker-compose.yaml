@@ -100,7 +100,7 @@ services:
       - LOG_LEVEL=INFO
       - GITLAB_URL=${GITLAB_URL:-https://gitlab.com}
       - GITLAB_TOKEN=${GITLAB_TOKEN:-}
-      - LLM_PROVIDER=${LLM_PROVIDER:-azure_openai}
+      - LLM_PROVIDER_NAME=${LLM_PROVIDER_NAME:-azure_openai}
       - LLM_API_KEY=${LLM_API_KEY:-}
       - LLM_MODEL=${LLM_MODEL:-}
       - AZURE_CONFIG_PATH=${AZURE_CONFIG_PATH:-instance.json}
