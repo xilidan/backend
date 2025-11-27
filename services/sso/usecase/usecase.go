@@ -98,6 +98,19 @@ func (u *usecase) CreateOrganization(ctx context.Context, req *entity.CreateOrga
 
 	userIDs := make([]uuid.UUID, len(req.Users))
 	for i, user := range req.Users {
+		// Check if user already exists by email
+		existingUser, err := u.Storage.GetUserByEmail(ctx, user.Email)
+		if err == nil && existingUser != nil {
+			// User already exists, use their ID
+			userUUID, parseErr := uuid.Parse(existingUser.ID)
+			if parseErr != nil {
+				return nil, parseErr
+			}
+			userIDs[i] = userUUID
+			continue
+		}
+
+		// Create new user
 		entUser, err := u.Storage.CreateUser(ctx, &entity.RegitserRequest{
 			Name:       user.Name,
 			Surname:    user.Surname,
@@ -110,6 +123,9 @@ func (u *usecase) CreateOrganization(ctx context.Context, req *entity.CreateOrga
 		}
 
 		userUUID, err := uuid.Parse(entUser.ID)
+		if err != nil {
+			return nil, err
+		}
 		userIDs[i] = userUUID
 	}
 
@@ -118,12 +134,15 @@ func (u *usecase) CreateOrganization(ctx context.Context, req *entity.CreateOrga
 		return nil, err
 	}
 
+	// Add creator to the organization's users list
+	allUserIDs := append(userIDs, creatorID)
+
 	organization, err := u.Storage.CreateOrganization(
 		ctx,
 		&entity.Organization{
 			Name: req.Name,
 		},
-		userIDs,
+		allUserIDs,
 		creatorID,
 	)
 	if err != nil {
