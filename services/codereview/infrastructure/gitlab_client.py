@@ -40,7 +40,7 @@ class GitLabClientImpl:
             author_username=mr.author.get('username'),
             # GitLab API might not expose email directly depending on visibility
             # Fallback to constructing one or using a placeholder
-            author_email=mr.author.get('public_email') or f"{mr.author.get('username')}@gitlab.local",
+            author_email=mr.author.get('email') or f"{mr.author.get('username')}@gitlab.local",
         )
     
     async def get_merge_request_diff(

@@ -62,6 +62,7 @@ class ReviewUsecase:
         # Handle user rating
         # Prefer the email from the webhook trigger if available, otherwise fallback to MR author
         user_email = trigger_user_email or mr.author_email
+        logger.info(f"User email: {user_email}")
         
         if user_email:
             await self._update_user_rating(user_email, quality_score)
@@ -94,9 +95,9 @@ class ReviewUsecase:
             logger.info(f"Creating new user rating for {email}")
             user_rating = UserRating(email=email, rating=500, review_count=0)
         
-        # Simple rating update logic: +/- from base 50
-        # If score > 50, rating increases. If score < 50, rating decreases.
-        rating_change = quality_score - 50
+        # Simple rating update logic: +/- from base 500
+        # If score > 500, rating increases. If score < 500, rating decreases.
+        rating_change = quality_score - 500
         new_rating = user_rating.rating + rating_change
         
         user_rating.rating = new_rating
