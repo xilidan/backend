@@ -54,6 +54,7 @@ async def lifespan(app: FastAPI):
             provider=settings.llm_provider,
             api_key=settings.llm_api_key,
             model=settings.llm_model or None,
+            azure_config_path=settings.azure_config_path if settings.llm_provider == "azure_openai" else None,
         )
     
     if settings.repository_type == "redis":

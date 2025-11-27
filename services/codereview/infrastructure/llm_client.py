@@ -1,8 +1,9 @@
 import json
 import logging
+from pathlib import Path
 from typing import Any
 
-from openai import AsyncOpenAI
+from openai import AsyncOpenAI, AsyncAzureOpenAI
 from anthropic import AsyncAnthropic
 
 from domain import Comment, CommentSeverity, CommentType, FileDiff, ReviewRecommendation
@@ -18,27 +19,69 @@ class LLMClientImpl:
         provider: str = "openai",
         api_key: str | None = None,
         model: str | None = None,
+        azure_config_path: str | None = None,
     ):
         self.provider = provider.lower()
         self.api_key = api_key
+        self.is_azure = False
         
-        if model:
+        # Load Azure configuration if provider is azure_openai
+        if self.provider == "azure_openai" or azure_config_path:
+            self.is_azure = True
+            azure_config = self._load_azure_config(azure_config_path or "instance.json")
+            
+            self.model = azure_config.get("deployment", model or "gpt-4")
+            self.client = AsyncAzureOpenAI(
+                azure_endpoint=azure_config["url"],
+                api_key=azure_config["key"],
+                api_version=azure_config.get("api_version", "2024-02-15-preview"),
+            )
+            logger.info(
+                f"Azure OpenAI client initialized with deployment: {self.model} "
+                f"at {azure_config['url']}"
+            )
+        elif model:
             self.model = model
+            self._init_standard_client()
         elif self.provider == "openai":
             self.model = "gpt-4-turbo-preview"
+            self._init_standard_client()
         elif self.provider == "anthropic":
             self.model = "claude-3-5-sonnet-20241022"
+            self._init_standard_client()
         else:
             self.model = "gpt-4-turbo-preview"
+            self._init_standard_client()
         
+        if not self.is_azure:
+            logger.info(f"LLM client initialized: {self.provider} with model {self.model}")
+    
+    def _load_azure_config(self, config_path: str) -> dict:
+        """Load Azure OpenAI configuration from instance.json."""
+        try:
+            # Try relative to service directory first
+            path = Path(config_path)
+            if not path.is_absolute():
+                path = Path(__file__).parent.parent / config_path
+            
+            with open(path, "r") as f:
+                configs = json.load(f)
+                # Take the first instance
+                if isinstance(configs, list) and len(configs) > 0:
+                    return configs[0]
+                return configs
+        except Exception as e:
+            logger.error(f"Failed to load Azure config from {config_path}: {e}")
+            raise ValueError(f"Could not load Azure configuration: {e}")
+    
+    def _init_standard_client(self):
+        """Initialize standard OpenAI or Anthropic client."""
         if self.provider == "openai":
-            self.client = AsyncOpenAI(api_key=api_key)
+            self.client = AsyncOpenAI(api_key=self.api_key)
         elif self.provider == "anthropic":
-            self.client = AsyncAnthropic(api_key=api_key)
+            self.client = AsyncAnthropic(api_key=self.api_key)
         else:
-            raise ValueError(f"Unsupported provider: {provider}")
-        
-        logger.info(f"LLM client initialized: {self.provider} with model {self.model}")
+            raise ValueError(f"Unsupported provider: {self.provider}")
     
     async def analyze_code(
         self,

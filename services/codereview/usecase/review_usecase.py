@@ -51,7 +51,7 @@ class ReviewUsecase:
         )
         
         result = ReviewResult(
-            mr_id=mr.id,
+            mr_id=mr_iid,  # Use mr_iid (project-scoped) not mr.id (global)
             project_id=project_id,
             comments=comments,
             summary=summary,
