@@ -49,6 +49,7 @@ type GetTranscriptionResponse struct {
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	h.log.Debug("registering HTTP routes")
 	mux.HandleFunc("POST /api/v1/meetings/start", h.StartMeeting)
+	mux.HandleFunc("POST /api/v1/webhook", h.Webhook)
 	h.log.Debug("registered route: POST /api/v1/meetings/start")
 	mux.HandleFunc("POST /api/v1/meetings/{bot_id}/stop", h.StopMeeting)
 	h.log.Debug("registered route: POST /api/v1/meetings/{bot_id}/stop")
@@ -96,7 +97,7 @@ func (h *Handler) StartMeeting(w http.ResponseWriter, r *http.Request) {
 	botID, meetingID, err := h.monitor.StartMeeting(req.MeetingURL)
 	if err != nil {
 		h.log.Error("failed to start meeting", slog.String("error", err.Error()))
-		h.log.Error("monitor.StartMeeting returned error", 
+		h.log.Error("monitor.StartMeeting returned error",
 			slog.String("error", err.Error()),
 			slog.String("meeting_url", req.MeetingURL))
 		http.Error(w, err.Error(), http.StatusInternalServerError)
