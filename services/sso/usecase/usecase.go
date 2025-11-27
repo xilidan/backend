@@ -112,11 +112,17 @@ func (u *usecase) CreateOrganization(ctx context.Context, req *entity.CreateOrga
 		}
 
 		// Create new user
+		positionID := 0
+		if user.Position != nil {
+			positionID = user.Position.ID
+		}
+
 		entUser, err := u.Storage.CreateUser(ctx, &entity.RegitserRequest{
 			Name:       user.Name,
 			Surname:    user.Surname,
 			Email:      user.Email,
-			PositionID: positions[i].ID,
+			PositionID: positionID,
+			Job:        user.Job,
 			Password:   "",
 		})
 		if err != nil {

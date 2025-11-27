@@ -323,6 +323,13 @@ components:
           type: string
           format: email
           example: john.doe@example.com
+        position_id:
+          type: integer
+          format: int64
+          example: 1764283839733
+        job:
+          type: string
+          example: Software Engineer
 
     Position:
       type: object

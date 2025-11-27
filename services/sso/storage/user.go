@@ -17,7 +17,8 @@ func (s *storage) CreateUser(ctx context.Context, req *entity.RegitserRequest) (
 		SetName(req.Name).
 		SetNillableSurname(req.Surname).
 		SetEmail(req.Email).
-		SetPasswordHash(req.Password)
+		SetPasswordHash(req.Password).
+		SetNillableJob(req.Job)
 
 	// Only set position if it's provided (for organization users)
 	if req.PositionID != 0 {

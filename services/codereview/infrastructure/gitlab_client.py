@@ -23,6 +23,8 @@ class GitLabClientImpl:
         
         project = self.gl.projects.get(project_id)
         mr = project.mergerequests.get(mr_iid)
+        author_email = mr.author.get('email') or mr.author.get('public_email') or f"{author_username}@gitlab.local"
+
         
         return MergeRequest(
             id=mr.id,
@@ -40,7 +42,7 @@ class GitLabClientImpl:
             author_username=mr.author.get('username'),
             # GitLab API might not expose email directly depending on visibility
             # Fallback to constructing one or using a placeholder
-            author_email=mr.author.get('email') or f"{mr.author.get('username')}@gitlab.local",
+            author_email=author_email,
         )
     
     async def get_merge_request_diff(
