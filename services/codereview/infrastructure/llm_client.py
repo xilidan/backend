@@ -172,7 +172,31 @@ Be constructive, specific, and helpful in your feedback."""
         
         return prompt
     
-    # ... (methods _call_openai and _call_anthropic remain unchanged)
+    async def _call_openai(self, prompt: str) -> str:
+        response = await self.client.chat.completions.create(
+            model=self.model,
+            messages=[
+                {
+                    "role": "system",
+                    "content": "You are an expert code reviewer. Always respond in valid JSON format.",
+                },
+                {"role": "user", "content": prompt},
+            ],
+            temperature=0.3,
+            response_format={"type": "json_object"},
+        )
+        return response.choices[0].message.content
+    
+    async def _call_anthropic(self, prompt: str) -> str:
+        response = await self.client.messages.create(
+            model=self.model,
+            max_tokens=4096,
+            temperature=0.3,
+            messages=[
+                {"role": "user", "content": prompt}
+            ],
+        )
+        return response.content[0].text
 
     def _parse_response(
         self, response_text: str
