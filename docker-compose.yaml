@@ -47,6 +47,55 @@ services:
       - POSTGRES_USER=sso_user
       - POSTGRES_PASSWORD=sso_password
       - POSTGRES_DB=sso_db
+services:
+  web-gateway:
+    build:
+      context: .
+      dockerfile: ./deploy/web/Dockerfile
+    container_name: web-gateway
+    ports:
+      - "8095:8080"
+    restart: unless-stopped
+    networks:
+      - app-network
+    environment:
+      - JWT_SECRET=your-secret-key-change-in-production
+      - SSO_PORT=50051
+      - SSO_URL=sso-service
+    depends_on:
+      - sso-service
+
+  sso-service:
+    build:
+      context: .
+      dockerfile: ./deploy/sso/Dockerfile
+    container_name: sso-service
+    restart: unless-stopped
+    networks:
+      - app-network
+    environment:
+      - DB_USER=sso_user
+      - DB_PASSWORD=sso_password
+      - DB_HOST=sso-db
+      - DB_NAME=sso_db
+      - DB_PORT=5432
+      - DB_SSLMODE=disable
+      - JWT_SECRET=your-secret-key-change-in-production
+      - PORT=50051
+    depends_on:
+      sso-db:
+        condition: service_healthy
+
+  sso-db:
+    image: postgres:16-alpine
+    container_name: sso-db
+    restart: unless-stopped
+    networks:
+      - app-network
+    environment:
+      - POSTGRES_USER=sso_user
+      - POSTGRES_PASSWORD=sso_password
+      - POSTGRES_DB=sso_db
     volumes:
       - sso-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -54,6 +103,35 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+
+  scrum-ai-service:
+    build:
+      context: ./services/scrum
+      dockerfile: ../../deploy/scrum/Dockerfile
+    container_name: jira-ai-scrum-master
+    ports:
+      - "8000:8000"
+    environment:
+      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
+      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
+      - AZURE_OPENAI_DEPLOYMENT_NAME=${AZURE_OPENAI_DEPLOYMENT_NAME}
+      - API_VERSION=${API_VERSION}
+      - BACKEND_API_URL=${BACKEND_API_URL:-https://api.azed.kz/api/v1}
+    env_file:
+      - ./services/scrum/.env
+    volumes:
+      - ./services/scrum:/app
+      - /app/venv
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - app-network
+
 
 networks:
   app-network:
