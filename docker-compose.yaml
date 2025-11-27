@@ -125,6 +125,19 @@ services:
     # Uncomment if using Redis
     # depends_on:
     #   - codereview-redis
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:6.0
+    container_name: codereview-mongo
+    restart: unless-stopped
+    networks:
+      - app-network
+    volumes:
+      - codereview-mongo-data:/data/db
+    ports:
+      - "27017:27017"
 
   codereview-redis:
     image: redis:7-alpine
@@ -146,4 +159,5 @@ networks:
 
 volumes:
   sso-db-data:
+  codereview-mongo-data:
   codereview-redis-data:
