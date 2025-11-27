@@ -111,13 +111,6 @@ paths:
       operationId: getUserProfile
       security:
         - bearerAuth: []
-      parameters:
-        - name: user_id
-          in: query
-          required: true
-          schema:
-            type: string
-          example: 550e8400-e29b-41d4-a716-446655440000
       responses:
         '200':
           description: User profile retrieved successfully
@@ -183,14 +176,6 @@ paths:
       operationId: getOrganization
       security:
         - bearerAuth: []
-      parameters:
-        - name: id
-          in: query
-          required: true
-          schema:
-            type: string
-          description: User ID to find their organization
-          example: 550e8400-e29b-41d4-a716-446655440000
       responses:
         '200':
           description: Organization retrieved successfully
