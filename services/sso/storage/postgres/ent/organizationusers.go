@@ -10,7 +10,9 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"github.com/google/uuid"
+	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organization"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organizationusers"
+	"github.com/xilidan/backend/services/sso/storage/postgres/ent/user"
 )
 
 // OrganizationUsers is the model entity for the OrganizationUsers schema.
@@ -33,28 +35,32 @@ type OrganizationUsers struct {
 // OrganizationUsersEdges holds the relations/edges for other nodes in the graph.
 type OrganizationUsersEdges struct {
 	// User holds the value of the user edge.
-	User []*User `json:"user,omitempty"`
+	User *User `json:"user,omitempty"`
 	// Organization holds the value of the organization edge.
-	Organization []*Organization `json:"organization,omitempty"`
+	Organization *Organization `json:"organization,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [2]bool
 }
 
 // UserOrErr returns the User value or an error if the edge
-// was not loaded in eager-loading.
-func (e OrganizationUsersEdges) UserOrErr() ([]*User, error) {
-	if e.loadedTypes[0] {
+// was not loaded in eager-loading, or loaded but was not found.
+func (e OrganizationUsersEdges) UserOrErr() (*User, error) {
+	if e.User != nil {
 		return e.User, nil
+	} else if e.loadedTypes[0] {
+		return nil, &NotFoundError{label: user.Label}
 	}
 	return nil, &NotLoadedError{edge: "user"}
 }
 
 // OrganizationOrErr returns the Organization value or an error if the edge
-// was not loaded in eager-loading.
-func (e OrganizationUsersEdges) OrganizationOrErr() ([]*Organization, error) {
-	if e.loadedTypes[1] {
+// was not loaded in eager-loading, or loaded but was not found.
+func (e OrganizationUsersEdges) OrganizationOrErr() (*Organization, error) {
+	if e.Organization != nil {
 		return e.Organization, nil
+	} else if e.loadedTypes[1] {
+		return nil, &NotFoundError{label: organization.Label}
 	}
 	return nil, &NotLoadedError{edge: "organization"}
 }

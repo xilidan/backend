@@ -26,7 +26,6 @@ type OrganizationQuery struct {
 	inters     []Interceptor
 	predicates []predicate.Organization
 	withUsers  *OrganizationUsersQuery
-	withFKs    bool
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -372,15 +371,11 @@ func (_q *OrganizationQuery) prepareQuery(ctx context.Context) error {
 func (_q *OrganizationQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*Organization, error) {
 	var (
 		nodes       = []*Organization{}
-		withFKs     = _q.withFKs
 		_spec       = _q.querySpec()
 		loadedTypes = [1]bool{
 			_q.withUsers != nil,
 		}
 	)
-	if withFKs {
-		_spec.Node.Columns = append(_spec.Node.Columns, organization.ForeignKeys...)
-	}
 	_spec.ScanValues = func(columns []string) ([]any, error) {
 		return (*Organization).scanValues(nil, columns)
 	}

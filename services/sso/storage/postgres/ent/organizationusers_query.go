@@ -4,7 +4,6 @@ package ent
 
 import (
 	"context"
-	"database/sql/driver"
 	"fmt"
 	"math"
 
@@ -79,7 +78,7 @@ func (_q *OrganizationUsersQuery) QueryUser() *UserQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(organizationusers.Table, organizationusers.FieldID, selector),
 			sqlgraph.To(user.Table, user.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, organizationusers.UserTable, organizationusers.UserColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, organizationusers.UserTable, organizationusers.UserColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -101,7 +100,7 @@ func (_q *OrganizationUsersQuery) QueryOrganization() *OrganizationQuery {
 		step := sqlgraph.NewStep(
 			sqlgraph.From(organizationusers.Table, organizationusers.FieldID, selector),
 			sqlgraph.To(organization.Table, organization.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, organizationusers.OrganizationTable, organizationusers.OrganizationColumn),
+			sqlgraph.Edge(sqlgraph.M2O, true, organizationusers.OrganizationTable, organizationusers.OrganizationColumn),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -415,6 +414,9 @@ func (_q *OrganizationUsersQuery) sqlAll(ctx context.Context, hooks ...queryHook
 			_q.withOrganization != nil,
 		}
 	)
+	if _q.withUser != nil || _q.withOrganization != nil {
+		withFKs = true
+	}
 	if withFKs {
 		_spec.Node.Columns = append(_spec.Node.Columns, organizationusers.ForeignKeys...)
 	}
@@ -437,16 +439,14 @@ func (_q *OrganizationUsersQuery) sqlAll(ctx context.Context, hooks ...queryHook
 		return nodes, nil
 	}
 	if query := _q.withUser; query != nil {
-		if err := _q.loadUser(ctx, query, nodes,
-			func(n *OrganizationUsers) { n.Edges.User = []*User{} },
-			func(n *OrganizationUsers, e *User) { n.Edges.User = append(n.Edges.User, e) }); err != nil {
+		if err := _q.loadUser(ctx, query, nodes, nil,
+			func(n *OrganizationUsers, e *User) { n.Edges.User = e }); err != nil {
 			return nil, err
 		}
 	}
 	if query := _q.withOrganization; query != nil {
-		if err := _q.loadOrganization(ctx, query, nodes,
-			func(n *OrganizationUsers) { n.Edges.Organization = []*Organization{} },
-			func(n *OrganizationUsers, e *Organization) { n.Edges.Organization = append(n.Edges.Organization, e) }); err != nil {
+		if err := _q.loadOrganization(ctx, query, nodes, nil,
+			func(n *OrganizationUsers, e *Organization) { n.Edges.Organization = e }); err != nil {
 			return nil, err
 		}
 	}
@@ -454,64 +454,66 @@ func (_q *OrganizationUsersQuery) sqlAll(ctx context.Context, hooks ...queryHook
 }
 
 func (_q *OrganizationUsersQuery) loadUser(ctx context.Context, query *UserQuery, nodes []*OrganizationUsers, init func(*OrganizationUsers), assign func(*OrganizationUsers, *User)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[uuid.UUID]*OrganizationUsers)
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*OrganizationUsers)
 	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
+		if nodes[i].user_organizations == nil {
+			continue
 		}
+		fk := *nodes[i].user_organizations
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
-	query.withFKs = true
-	query.Where(predicate.User(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(organizationusers.UserColumn), fks...))
-	}))
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(user.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.organization_users_user
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "organization_users_user" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "organization_users_user" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "user_organizations" returned %v`, n.ID)
 		}
-		assign(node, n)
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }
 func (_q *OrganizationUsersQuery) loadOrganization(ctx context.Context, query *OrganizationQuery, nodes []*OrganizationUsers, init func(*OrganizationUsers), assign func(*OrganizationUsers, *Organization)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[uuid.UUID]*OrganizationUsers)
+	ids := make([]uuid.UUID, 0, len(nodes))
+	nodeids := make(map[uuid.UUID][]*OrganizationUsers)
 	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
-		if init != nil {
-			init(nodes[i])
+		if nodes[i].organization_users == nil {
+			continue
 		}
+		fk := *nodes[i].organization_users
+		if _, ok := nodeids[fk]; !ok {
+			ids = append(ids, fk)
+		}
+		nodeids[fk] = append(nodeids[fk], nodes[i])
 	}
-	query.withFKs = true
-	query.Where(predicate.Organization(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(organizationusers.OrganizationColumn), fks...))
-	}))
+	if len(ids) == 0 {
+		return nil
+	}
+	query.Where(organization.IDIn(ids...))
 	neighbors, err := query.All(ctx)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.organization_users_organization
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "organization_users_organization" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		nodes, ok := nodeids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "organization_users_organization" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected foreign-key "organization_users" returned %v`, n.ID)
 		}
-		assign(node, n)
+		for i := range nodes {
+			assign(nodes[i], n)
+		}
 	}
 	return nil
 }

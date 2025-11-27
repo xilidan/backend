@@ -26,19 +26,19 @@ const (
 	// Table holds the table name of the organizationusers in the database.
 	Table = "organization_users"
 	// UserTable is the table that holds the user relation/edge.
-	UserTable = "users"
+	UserTable = "organization_users"
 	// UserInverseTable is the table name for the User entity.
 	// It exists in this package in order to avoid circular dependency with the "user" package.
 	UserInverseTable = "users"
 	// UserColumn is the table column denoting the user relation/edge.
-	UserColumn = "organization_users_user"
+	UserColumn = "user_organizations"
 	// OrganizationTable is the table that holds the organization relation/edge.
-	OrganizationTable = "organizations"
+	OrganizationTable = "organization_users"
 	// OrganizationInverseTable is the table name for the Organization entity.
 	// It exists in this package in order to avoid circular dependency with the "organization" package.
 	OrganizationInverseTable = "organizations"
 	// OrganizationColumn is the table column denoting the organization relation/edge.
-	OrganizationColumn = "organization_users_organization"
+	OrganizationColumn = "organization_users"
 )
 
 // Columns holds all SQL columns for organizationusers fields.
@@ -97,44 +97,30 @@ func ByUpdatedAt(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldUpdatedAt, opts...).ToFunc()
 }
 
-// ByUserCount orders the results by user count.
-func ByUserCount(opts ...sql.OrderTermOption) OrderOption {
+// ByUserField orders the results by user field.
+func ByUserField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newUserStep(), opts...)
+		sqlgraph.OrderByNeighborTerms(s, newUserStep(), sql.OrderByField(field, opts...))
 	}
 }
 
-// ByUser orders the results by user terms.
-func ByUser(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
+// ByOrganizationField orders the results by organization field.
+func ByOrganizationField(field string, opts ...sql.OrderTermOption) OrderOption {
 	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newUserStep(), append([]sql.OrderTerm{term}, terms...)...)
-	}
-}
-
-// ByOrganizationCount orders the results by organization count.
-func ByOrganizationCount(opts ...sql.OrderTermOption) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborsCount(s, newOrganizationStep(), opts...)
-	}
-}
-
-// ByOrganization orders the results by organization terms.
-func ByOrganization(term sql.OrderTerm, terms ...sql.OrderTerm) OrderOption {
-	return func(s *sql.Selector) {
-		sqlgraph.OrderByNeighborTerms(s, newOrganizationStep(), append([]sql.OrderTerm{term}, terms...)...)
+		sqlgraph.OrderByNeighborTerms(s, newOrganizationStep(), sql.OrderByField(field, opts...))
 	}
 }
 func newUserStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(UserInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, UserTable, UserColumn),
+		sqlgraph.Edge(sqlgraph.M2O, true, UserTable, UserColumn),
 	)
 }
 func newOrganizationStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(OrganizationInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, OrganizationTable, OrganizationColumn),
+		sqlgraph.Edge(sqlgraph.M2O, true, OrganizationTable, OrganizationColumn),
 	)
 }

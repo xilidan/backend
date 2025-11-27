@@ -65,34 +65,26 @@ func (_c *OrganizationUsersCreate) SetNillableID(v *uuid.UUID) *OrganizationUser
 	return _c
 }
 
-// AddUserIDs adds the "user" edge to the User entity by IDs.
-func (_c *OrganizationUsersCreate) AddUserIDs(ids ...uuid.UUID) *OrganizationUsersCreate {
-	_c.mutation.AddUserIDs(ids...)
+// SetUserID sets the "user" edge to the User entity by ID.
+func (_c *OrganizationUsersCreate) SetUserID(id uuid.UUID) *OrganizationUsersCreate {
+	_c.mutation.SetUserID(id)
 	return _c
 }
 
-// AddUser adds the "user" edges to the User entity.
-func (_c *OrganizationUsersCreate) AddUser(v ...*User) *OrganizationUsersCreate {
-	ids := make([]uuid.UUID, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _c.AddUserIDs(ids...)
+// SetUser sets the "user" edge to the User entity.
+func (_c *OrganizationUsersCreate) SetUser(v *User) *OrganizationUsersCreate {
+	return _c.SetUserID(v.ID)
 }
 
-// AddOrganizationIDs adds the "organization" edge to the Organization entity by IDs.
-func (_c *OrganizationUsersCreate) AddOrganizationIDs(ids ...uuid.UUID) *OrganizationUsersCreate {
-	_c.mutation.AddOrganizationIDs(ids...)
+// SetOrganizationID sets the "organization" edge to the Organization entity by ID.
+func (_c *OrganizationUsersCreate) SetOrganizationID(id uuid.UUID) *OrganizationUsersCreate {
+	_c.mutation.SetOrganizationID(id)
 	return _c
 }
 
-// AddOrganization adds the "organization" edges to the Organization entity.
-func (_c *OrganizationUsersCreate) AddOrganization(v ...*Organization) *OrganizationUsersCreate {
-	ids := make([]uuid.UUID, len(v))
-	for i := range v {
-		ids[i] = v[i].ID
-	}
-	return _c.AddOrganizationIDs(ids...)
+// SetOrganization sets the "organization" edge to the Organization entity.
+func (_c *OrganizationUsersCreate) SetOrganization(v *Organization) *OrganizationUsersCreate {
+	return _c.SetOrganizationID(v.ID)
 }
 
 // Mutation returns the OrganizationUsersMutation object of the builder.
@@ -203,8 +195,8 @@ func (_c *OrganizationUsersCreate) createSpec() (*OrganizationUsers, *sqlgraph.C
 	}
 	if nodes := _c.mutation.UserIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
 			Table:   organizationusers.UserTable,
 			Columns: []string{organizationusers.UserColumn},
 			Bidi:    false,
@@ -215,12 +207,13 @@ func (_c *OrganizationUsersCreate) createSpec() (*OrganizationUsers, *sqlgraph.C
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_node.user_organizations = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	if nodes := _c.mutation.OrganizationIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Rel:     sqlgraph.M2O,
+			Inverse: true,
 			Table:   organizationusers.OrganizationTable,
 			Columns: []string{organizationusers.OrganizationColumn},
 			Bidi:    false,
@@ -231,6 +224,7 @@ func (_c *OrganizationUsersCreate) createSpec() (*OrganizationUsers, *sqlgraph.C
 		for _, k := range nodes {
 			edge.Target.Nodes = append(edge.Target.Nodes, k)
 		}
+		_node.organization_users = &nodes[0]
 		_spec.Edges = append(_spec.Edges, edge)
 	}
 	return _node, _spec
