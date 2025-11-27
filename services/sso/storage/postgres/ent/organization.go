@@ -35,7 +35,7 @@ type Organization struct {
 // OrganizationEdges holds the relations/edges for other nodes in the graph.
 type OrganizationEdges struct {
 	// Users holds the value of the users edge.
-	Users []*OrganizationUsers `json:"users,omitempty"`
+	Users []*User `json:"users,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [1]bool
@@ -43,7 +43,7 @@ type OrganizationEdges struct {
 
 // UsersOrErr returns the Users value or an error if the edge
 // was not loaded in eager-loading.
-func (e OrganizationEdges) UsersOrErr() ([]*OrganizationUsers, error) {
+func (e OrganizationEdges) UsersOrErr() ([]*User, error) {
 	if e.loadedTypes[0] {
 		return e.Users, nil
 	}
@@ -120,7 +120,7 @@ func (_m *Organization) Value(name string) (ent.Value, error) {
 }
 
 // QueryUsers queries the "users" edge of the Organization entity.
-func (_m *Organization) QueryUsers() *OrganizationUsersQuery {
+func (_m *Organization) QueryUsers() *UserQuery {
 	return NewOrganizationClient(_m.config).QueryUsers(_m)
 }
 

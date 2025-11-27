@@ -30,7 +30,8 @@ func (User) Fields() []ent.Field {
 
 func (User) Edges() []ent.Edge {
 	return []ent.Edge{
-		edge.To("organizations", OrganizationUsers.Type),
+		edge.From("organizations", Organization.Type).
+			Ref("users"),
 		edge.To("position", Position.Type).
 			Unique(),
 	}

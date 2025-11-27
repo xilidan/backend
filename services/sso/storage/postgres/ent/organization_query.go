@@ -14,8 +14,8 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organization"
-	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organizationusers"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/predicate"
+	"github.com/xilidan/backend/services/sso/storage/postgres/ent/user"
 )
 
 // OrganizationQuery is the builder for querying Organization entities.
@@ -25,7 +25,7 @@ type OrganizationQuery struct {
 	order      []organization.OrderOption
 	inters     []Interceptor
 	predicates []predicate.Organization
-	withUsers  *OrganizationUsersQuery
+	withUsers  *UserQuery
 	// intermediate query (i.e. traversal path).
 	sql  *sql.Selector
 	path func(context.Context) (*sql.Selector, error)
@@ -63,8 +63,8 @@ func (_q *OrganizationQuery) Order(o ...organization.OrderOption) *OrganizationQ
 }
 
 // QueryUsers chains the current query on the "users" edge.
-func (_q *OrganizationQuery) QueryUsers() *OrganizationUsersQuery {
-	query := (&OrganizationUsersClient{config: _q.config}).Query()
+func (_q *OrganizationQuery) QueryUsers() *UserQuery {
+	query := (&UserClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -75,8 +75,8 @@ func (_q *OrganizationQuery) QueryUsers() *OrganizationUsersQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(organization.Table, organization.FieldID, selector),
-			sqlgraph.To(organizationusers.Table, organizationusers.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, organization.UsersTable, organization.UsersColumn),
+			sqlgraph.To(user.Table, user.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, false, organization.UsersTable, organization.UsersPrimaryKey...),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -285,8 +285,8 @@ func (_q *OrganizationQuery) Clone() *OrganizationQuery {
 
 // WithUsers tells the query-builder to eager-load the nodes that are connected to
 // the "users" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *OrganizationQuery) WithUsers(opts ...func(*OrganizationUsersQuery)) *OrganizationQuery {
-	query := (&OrganizationUsersClient{config: _q.config}).Query()
+func (_q *OrganizationQuery) WithUsers(opts ...func(*UserQuery)) *OrganizationQuery {
+	query := (&UserClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
@@ -396,42 +396,72 @@ func (_q *OrganizationQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]
 	}
 	if query := _q.withUsers; query != nil {
 		if err := _q.loadUsers(ctx, query, nodes,
-			func(n *Organization) { n.Edges.Users = []*OrganizationUsers{} },
-			func(n *Organization, e *OrganizationUsers) { n.Edges.Users = append(n.Edges.Users, e) }); err != nil {
+			func(n *Organization) { n.Edges.Users = []*User{} },
+			func(n *Organization, e *User) { n.Edges.Users = append(n.Edges.Users, e) }); err != nil {
 			return nil, err
 		}
 	}
 	return nodes, nil
 }
 
-func (_q *OrganizationQuery) loadUsers(ctx context.Context, query *OrganizationUsersQuery, nodes []*Organization, init func(*Organization), assign func(*Organization, *OrganizationUsers)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[uuid.UUID]*Organization)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
+func (_q *OrganizationQuery) loadUsers(ctx context.Context, query *UserQuery, nodes []*Organization, init func(*Organization), assign func(*Organization, *User)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[uuid.UUID]*Organization)
+	nids := make(map[uuid.UUID]map[*Organization]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
 		if init != nil {
-			init(nodes[i])
+			init(node)
 		}
 	}
-	query.withFKs = true
-	query.Where(predicate.OrganizationUsers(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(organization.UsersColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(organization.UsersTable)
+		s.Join(joinT).On(s.C(user.FieldID), joinT.C(organization.UsersPrimaryKey[1]))
+		s.Where(sql.InValues(joinT.C(organization.UsersPrimaryKey[0]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(organization.UsersPrimaryKey[0]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
+	}
+	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
+		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+			assign := spec.Assign
+			values := spec.ScanValues
+			spec.ScanValues = func(columns []string) ([]any, error) {
+				values, err := values(columns[1:])
+				if err != nil {
+					return nil, err
+				}
+				return append([]any{new(uuid.UUID)}, values...), nil
+			}
+			spec.Assign = func(columns []string, values []any) error {
+				outValue := *values[0].(*uuid.UUID)
+				inValue := *values[1].(*uuid.UUID)
+				if nids[inValue] == nil {
+					nids[inValue] = map[*Organization]struct{}{byID[outValue]: {}}
+					return assign(columns[1:], values[1:])
+				}
+				nids[inValue][byID[outValue]] = struct{}{}
+				return nil
+			}
+		})
+	})
+	neighbors, err := withInterceptors[[]*User](ctx, query, qr, query.inters)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.organization_users
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "organization_users" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		nodes, ok := nids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "organization_users" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected "users" node returned %v`, n.ID)
 		}
-		assign(node, n)
+		for kn := range nodes {
+			assign(kn, n)
+		}
 	}
 	return nil
 }

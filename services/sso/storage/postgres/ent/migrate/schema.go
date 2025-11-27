@@ -22,34 +22,6 @@ var (
 		Columns:    OrganizationsColumns,
 		PrimaryKey: []*schema.Column{OrganizationsColumns[0]},
 	}
-	// OrganizationUsersColumns holds the columns for the "organization_users" table.
-	OrganizationUsersColumns = []*schema.Column{
-		{Name: "id", Type: field.TypeUUID},
-		{Name: "created_at", Type: field.TypeTime},
-		{Name: "updated_at", Type: field.TypeTime},
-		{Name: "organization_users", Type: field.TypeUUID},
-		{Name: "user_organizations", Type: field.TypeUUID},
-	}
-	// OrganizationUsersTable holds the schema information for the "organization_users" table.
-	OrganizationUsersTable = &schema.Table{
-		Name:       "organization_users",
-		Columns:    OrganizationUsersColumns,
-		PrimaryKey: []*schema.Column{OrganizationUsersColumns[0]},
-		ForeignKeys: []*schema.ForeignKey{
-			{
-				Symbol:     "organization_users_organizations_users",
-				Columns:    []*schema.Column{OrganizationUsersColumns[3]},
-				RefColumns: []*schema.Column{OrganizationsColumns[0]},
-				OnDelete:   schema.NoAction,
-			},
-			{
-				Symbol:     "organization_users_users_organizations",
-				Columns:    []*schema.Column{OrganizationUsersColumns[4]},
-				RefColumns: []*schema.Column{UsersColumns[0]},
-				OnDelete:   schema.NoAction,
-			},
-		},
-	}
 	// PositionsColumns holds the columns for the "positions" table.
 	PositionsColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeInt, Increment: true},
@@ -90,17 +62,42 @@ var (
 			},
 		},
 	}
+	// OrganizationUsersColumns holds the columns for the "organization_users" table.
+	OrganizationUsersColumns = []*schema.Column{
+		{Name: "organization_id", Type: field.TypeUUID},
+		{Name: "user_id", Type: field.TypeUUID},
+	}
+	// OrganizationUsersTable holds the schema information for the "organization_users" table.
+	OrganizationUsersTable = &schema.Table{
+		Name:       "organization_users",
+		Columns:    OrganizationUsersColumns,
+		PrimaryKey: []*schema.Column{OrganizationUsersColumns[0], OrganizationUsersColumns[1]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "organization_users_organization_id",
+				Columns:    []*schema.Column{OrganizationUsersColumns[0]},
+				RefColumns: []*schema.Column{OrganizationsColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+			{
+				Symbol:     "organization_users_user_id",
+				Columns:    []*schema.Column{OrganizationUsersColumns[1]},
+				RefColumns: []*schema.Column{UsersColumns[0]},
+				OnDelete:   schema.Cascade,
+			},
+		},
+	}
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		OrganizationsTable,
-		OrganizationUsersTable,
 		PositionsTable,
 		UsersTable,
+		OrganizationUsersTable,
 	}
 )
 
 func init() {
+	UsersTable.ForeignKeys[0].RefTable = PositionsTable
 	OrganizationUsersTable.ForeignKeys[0].RefTable = OrganizationsTable
 	OrganizationUsersTable.ForeignKeys[1].RefTable = UsersTable
-	UsersTable.ForeignKeys[0].RefTable = PositionsTable
 }

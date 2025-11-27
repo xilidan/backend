@@ -7,7 +7,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organization"
-	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organizationusers"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/position"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/user"
 	"github.com/xilidan/backend/services/sso/storage/postgres/schema"
@@ -31,20 +30,6 @@ func init() {
 	organizationDescID := organizationFields[0].Descriptor()
 	// organization.DefaultID holds the default value on creation for the id field.
 	organization.DefaultID = organizationDescID.Default.(func() uuid.UUID)
-	organizationusersFields := schema.OrganizationUsers{}.Fields()
-	_ = organizationusersFields
-	// organizationusersDescCreatedAt is the schema descriptor for created_at field.
-	organizationusersDescCreatedAt := organizationusersFields[1].Descriptor()
-	// organizationusers.DefaultCreatedAt holds the default value on creation for the created_at field.
-	organizationusers.DefaultCreatedAt = organizationusersDescCreatedAt.Default.(time.Time)
-	// organizationusersDescUpdatedAt is the schema descriptor for updated_at field.
-	organizationusersDescUpdatedAt := organizationusersFields[2].Descriptor()
-	// organizationusers.DefaultUpdatedAt holds the default value on creation for the updated_at field.
-	organizationusers.DefaultUpdatedAt = organizationusersDescUpdatedAt.Default.(time.Time)
-	// organizationusersDescID is the schema descriptor for id field.
-	organizationusersDescID := organizationusersFields[0].Descriptor()
-	// organizationusers.DefaultID holds the default value on creation for the id field.
-	organizationusers.DefaultID = organizationusersDescID.Default.(func() uuid.UUID)
 	positionFields := schema.Position{}.Fields()
 	_ = positionFields
 	// positionDescCreatedAt is the schema descriptor for created_at field.

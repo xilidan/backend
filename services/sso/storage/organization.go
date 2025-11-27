@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/xilidan/backend/services/sso/entity"
-	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organizationusers"
+	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organization"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/user"
 )
 
@@ -28,10 +28,9 @@ func (s *storage) GetOrganization(ctx context.Context, userID string) (*entity.O
 		return nil, err
 	}
 
-	organizationEntity, err := s.OrganizationUsers.
+	organizationEntity, err := s.Organization.
 		Query().
-		Where(organizationusers.HasUserWith(user.ID(userUUID))).
-		QueryOrganization().
+		Where(organization.HasUsersWith(user.ID(userUUID))).
 		WithUsers().
 		First(ctx)
 	if err != nil {

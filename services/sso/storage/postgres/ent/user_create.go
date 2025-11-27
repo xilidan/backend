@@ -11,7 +11,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organizationusers"
+	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organization"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/position"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/user"
 )
@@ -111,14 +111,14 @@ func (_c *UserCreate) SetNillableID(v *uuid.UUID) *UserCreate {
 	return _c
 }
 
-// AddOrganizationIDs adds the "organizations" edge to the OrganizationUsers entity by IDs.
+// AddOrganizationIDs adds the "organizations" edge to the Organization entity by IDs.
 func (_c *UserCreate) AddOrganizationIDs(ids ...uuid.UUID) *UserCreate {
 	_c.mutation.AddOrganizationIDs(ids...)
 	return _c
 }
 
-// AddOrganizations adds the "organizations" edges to the OrganizationUsers entity.
-func (_c *UserCreate) AddOrganizations(v ...*OrganizationUsers) *UserCreate {
+// AddOrganizations adds the "organizations" edges to the Organization entity.
+func (_c *UserCreate) AddOrganizations(v ...*Organization) *UserCreate {
 	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -276,13 +276,13 @@ func (_c *UserCreate) createSpec() (*User, *sqlgraph.CreateSpec) {
 	}
 	if nodes := _c.mutation.OrganizationsIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
-			Inverse: false,
+			Rel:     sqlgraph.M2M,
+			Inverse: true,
 			Table:   user.OrganizationsTable,
-			Columns: []string{user.OrganizationsColumn},
+			Columns: user.OrganizationsPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organizationusers.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(organization.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

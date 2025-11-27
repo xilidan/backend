@@ -14,8 +14,6 @@ type Tx struct {
 	config
 	// Organization is the client for interacting with the Organization builders.
 	Organization *OrganizationClient
-	// OrganizationUsers is the client for interacting with the OrganizationUsers builders.
-	OrganizationUsers *OrganizationUsersClient
 	// Position is the client for interacting with the Position builders.
 	Position *PositionClient
 	// User is the client for interacting with the User builders.
@@ -152,7 +150,6 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.Organization = NewOrganizationClient(tx.config)
-	tx.OrganizationUsers = NewOrganizationUsersClient(tx.config)
 	tx.Position = NewPositionClient(tx.config)
 	tx.User = NewUserClient(tx.config)
 }
