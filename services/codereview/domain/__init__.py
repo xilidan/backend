@@ -6,6 +6,7 @@ from .entities import (
     CommentType,
     ReviewRecommendation,
     ReviewResult,
+    UserRating,
 )
 from .interfaces import GitLabClient, LLMClient, ReviewRepository
 
@@ -17,6 +18,7 @@ __all__ = [
     "CommentType",
     "ReviewRecommendation",
     "ReviewResult",
+    "UserRating",
     "GitLabClient",
     "LLMClient",
     "ReviewRepository",
