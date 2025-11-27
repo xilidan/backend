@@ -13,7 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
-	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organizationusers"
+	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organization"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/position"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/predicate"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/user"
@@ -26,7 +26,7 @@ type UserQuery struct {
 	order             []user.OrderOption
 	inters            []Interceptor
 	predicates        []predicate.User
-	withOrganizations *OrganizationUsersQuery
+	withOrganizations *OrganizationQuery
 	withPosition      *PositionQuery
 	withFKs           bool
 	// intermediate query (i.e. traversal path).
@@ -66,8 +66,8 @@ func (_q *UserQuery) Order(o ...user.OrderOption) *UserQuery {
 }
 
 // QueryOrganizations chains the current query on the "organizations" edge.
-func (_q *UserQuery) QueryOrganizations() *OrganizationUsersQuery {
-	query := (&OrganizationUsersClient{config: _q.config}).Query()
+func (_q *UserQuery) QueryOrganizations() *OrganizationQuery {
+	query := (&OrganizationClient{config: _q.config}).Query()
 	query.path = func(ctx context.Context) (fromU *sql.Selector, err error) {
 		if err := _q.prepareQuery(ctx); err != nil {
 			return nil, err
@@ -78,8 +78,8 @@ func (_q *UserQuery) QueryOrganizations() *OrganizationUsersQuery {
 		}
 		step := sqlgraph.NewStep(
 			sqlgraph.From(user.Table, user.FieldID, selector),
-			sqlgraph.To(organizationusers.Table, organizationusers.FieldID),
-			sqlgraph.Edge(sqlgraph.O2M, false, user.OrganizationsTable, user.OrganizationsColumn),
+			sqlgraph.To(organization.Table, organization.FieldID),
+			sqlgraph.Edge(sqlgraph.M2M, true, user.OrganizationsTable, user.OrganizationsPrimaryKey...),
 		)
 		fromU = sqlgraph.SetNeighbors(_q.driver.Dialect(), step)
 		return fromU, nil
@@ -311,8 +311,8 @@ func (_q *UserQuery) Clone() *UserQuery {
 
 // WithOrganizations tells the query-builder to eager-load the nodes that are connected to
 // the "organizations" edge. The optional arguments are used to configure the query builder of the edge.
-func (_q *UserQuery) WithOrganizations(opts ...func(*OrganizationUsersQuery)) *UserQuery {
-	query := (&OrganizationUsersClient{config: _q.config}).Query()
+func (_q *UserQuery) WithOrganizations(opts ...func(*OrganizationQuery)) *UserQuery {
+	query := (&OrganizationClient{config: _q.config}).Query()
 	for _, opt := range opts {
 		opt(query)
 	}
@@ -441,8 +441,8 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	}
 	if query := _q.withOrganizations; query != nil {
 		if err := _q.loadOrganizations(ctx, query, nodes,
-			func(n *User) { n.Edges.Organizations = []*OrganizationUsers{} },
-			func(n *User, e *OrganizationUsers) { n.Edges.Organizations = append(n.Edges.Organizations, e) }); err != nil {
+			func(n *User) { n.Edges.Organizations = []*Organization{} },
+			func(n *User, e *Organization) { n.Edges.Organizations = append(n.Edges.Organizations, e) }); err != nil {
 			return nil, err
 		}
 	}
@@ -455,34 +455,64 @@ func (_q *UserQuery) sqlAll(ctx context.Context, hooks ...queryHook) ([]*User, e
 	return nodes, nil
 }
 
-func (_q *UserQuery) loadOrganizations(ctx context.Context, query *OrganizationUsersQuery, nodes []*User, init func(*User), assign func(*User, *OrganizationUsers)) error {
-	fks := make([]driver.Value, 0, len(nodes))
-	nodeids := make(map[uuid.UUID]*User)
-	for i := range nodes {
-		fks = append(fks, nodes[i].ID)
-		nodeids[nodes[i].ID] = nodes[i]
+func (_q *UserQuery) loadOrganizations(ctx context.Context, query *OrganizationQuery, nodes []*User, init func(*User), assign func(*User, *Organization)) error {
+	edgeIDs := make([]driver.Value, len(nodes))
+	byID := make(map[uuid.UUID]*User)
+	nids := make(map[uuid.UUID]map[*User]struct{})
+	for i, node := range nodes {
+		edgeIDs[i] = node.ID
+		byID[node.ID] = node
 		if init != nil {
-			init(nodes[i])
+			init(node)
 		}
 	}
-	query.withFKs = true
-	query.Where(predicate.OrganizationUsers(func(s *sql.Selector) {
-		s.Where(sql.InValues(s.C(user.OrganizationsColumn), fks...))
-	}))
-	neighbors, err := query.All(ctx)
+	query.Where(func(s *sql.Selector) {
+		joinT := sql.Table(user.OrganizationsTable)
+		s.Join(joinT).On(s.C(organization.FieldID), joinT.C(user.OrganizationsPrimaryKey[0]))
+		s.Where(sql.InValues(joinT.C(user.OrganizationsPrimaryKey[1]), edgeIDs...))
+		columns := s.SelectedColumns()
+		s.Select(joinT.C(user.OrganizationsPrimaryKey[1]))
+		s.AppendSelect(columns...)
+		s.SetDistinct(false)
+	})
+	if err := query.prepareQuery(ctx); err != nil {
+		return err
+	}
+	qr := QuerierFunc(func(ctx context.Context, q Query) (Value, error) {
+		return query.sqlAll(ctx, func(_ context.Context, spec *sqlgraph.QuerySpec) {
+			assign := spec.Assign
+			values := spec.ScanValues
+			spec.ScanValues = func(columns []string) ([]any, error) {
+				values, err := values(columns[1:])
+				if err != nil {
+					return nil, err
+				}
+				return append([]any{new(uuid.UUID)}, values...), nil
+			}
+			spec.Assign = func(columns []string, values []any) error {
+				outValue := *values[0].(*uuid.UUID)
+				inValue := *values[1].(*uuid.UUID)
+				if nids[inValue] == nil {
+					nids[inValue] = map[*User]struct{}{byID[outValue]: {}}
+					return assign(columns[1:], values[1:])
+				}
+				nids[inValue][byID[outValue]] = struct{}{}
+				return nil
+			}
+		})
+	})
+	neighbors, err := withInterceptors[[]*Organization](ctx, query, qr, query.inters)
 	if err != nil {
 		return err
 	}
 	for _, n := range neighbors {
-		fk := n.user_organizations
-		if fk == nil {
-			return fmt.Errorf(`foreign-key "user_organizations" is nil for node %v`, n.ID)
-		}
-		node, ok := nodeids[*fk]
+		nodes, ok := nids[n.ID]
 		if !ok {
-			return fmt.Errorf(`unexpected referenced foreign-key "user_organizations" returned %v for node %v`, *fk, n.ID)
+			return fmt.Errorf(`unexpected "organizations" node returned %v`, n.ID)
 		}
-		assign(node, n)
+		for kn := range nodes {
+			assign(kn, n)
+		}
 	}
 	return nil
 }

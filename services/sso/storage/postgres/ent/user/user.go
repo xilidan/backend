@@ -35,13 +35,11 @@ const (
 	EdgePosition = "position"
 	// Table holds the table name of the user in the database.
 	Table = "users"
-	// OrganizationsTable is the table that holds the organizations relation/edge.
+	// OrganizationsTable is the table that holds the organizations relation/edge. The primary key declared below.
 	OrganizationsTable = "organization_users"
-	// OrganizationsInverseTable is the table name for the OrganizationUsers entity.
-	// It exists in this package in order to avoid circular dependency with the "organizationusers" package.
-	OrganizationsInverseTable = "organization_users"
-	// OrganizationsColumn is the table column denoting the organizations relation/edge.
-	OrganizationsColumn = "user_organizations"
+	// OrganizationsInverseTable is the table name for the Organization entity.
+	// It exists in this package in order to avoid circular dependency with the "organization" package.
+	OrganizationsInverseTable = "organizations"
 	// PositionTable is the table that holds the position relation/edge.
 	PositionTable = "users"
 	// PositionInverseTable is the table name for the Position entity.
@@ -68,6 +66,12 @@ var Columns = []string{
 var ForeignKeys = []string{
 	"user_position",
 }
+
+var (
+	// OrganizationsPrimaryKey and OrganizationsColumn2 are the table columns denoting the
+	// primary key for the organizations relation (M2M).
+	OrganizationsPrimaryKey = []string{"organization_id", "user_id"}
+)
 
 // ValidColumn reports if the column name is valid (part of the table columns).
 func ValidColumn(column string) bool {
@@ -160,7 +164,7 @@ func newOrganizationsStep() *sqlgraph.Step {
 	return sqlgraph.NewStep(
 		sqlgraph.From(Table, FieldID),
 		sqlgraph.To(OrganizationsInverseTable, FieldID),
-		sqlgraph.Edge(sqlgraph.O2M, false, OrganizationsTable, OrganizationsColumn),
+		sqlgraph.Edge(sqlgraph.M2M, true, OrganizationsTable, OrganizationsPrimaryKey...),
 	)
 }
 func newPositionStep() *sqlgraph.Step {

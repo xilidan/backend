@@ -17,11 +17,12 @@ type Storage interface {
 	GetUserByEmail(ctx context.Context, email string) (*entity.User, error)
 	GetUserByID(ctx context.Context, id string) (*entity.User, error)
 
-	CreateOrganization(ctx context.Context, req *entity.Organization, userIDs []uuid.UUID) (*entity.Organization, error)
+	CreateOrganization(ctx context.Context, req *entity.Organization, userIDs []uuid.UUID, creatorID uuid.UUID) (*entity.Organization, error)
 	GetOrganization(ctx context.Context, id string) (*entity.Organization, error)
 	UpdateOrganization(ctx context.Context, req *entity.Organization, userIDs []uuid.UUID) (*entity.Organization, error)
 
 	CreatePosition(ctx context.Context, req *entity.Position) (*entity.Position, error)
+	GetPositions(ctx context.Context, organizationID string) ([]*entity.Position, error)
 }
 
 func New(client *ent.Client) Storage {

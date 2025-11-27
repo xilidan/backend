@@ -43,7 +43,7 @@ type User struct {
 // UserEdges holds the relations/edges for other nodes in the graph.
 type UserEdges struct {
 	// Organizations holds the value of the organizations edge.
-	Organizations []*OrganizationUsers `json:"organizations,omitempty"`
+	Organizations []*Organization `json:"organizations,omitempty"`
 	// Position holds the value of the position edge.
 	Position *Position `json:"position,omitempty"`
 	// loadedTypes holds the information for reporting if a
@@ -53,7 +53,7 @@ type UserEdges struct {
 
 // OrganizationsOrErr returns the Organizations value or an error if the edge
 // was not loaded in eager-loading.
-func (e UserEdges) OrganizationsOrErr() ([]*OrganizationUsers, error) {
+func (e UserEdges) OrganizationsOrErr() ([]*Organization, error) {
 	if e.loadedTypes[0] {
 		return e.Organizations, nil
 	}
@@ -170,7 +170,7 @@ func (_m *User) Value(name string) (ent.Value, error) {
 }
 
 // QueryOrganizations queries the "organizations" edge of the User entity.
-func (_m *User) QueryOrganizations() *OrganizationUsersQuery {
+func (_m *User) QueryOrganizations() *OrganizationQuery {
 	return NewUserClient(_m.config).QueryOrganizations(_m)
 }
 

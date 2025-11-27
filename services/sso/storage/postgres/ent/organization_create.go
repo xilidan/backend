@@ -12,7 +12,7 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organization"
-	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organizationusers"
+	"github.com/xilidan/backend/services/sso/storage/postgres/ent/user"
 )
 
 // OrganizationCreate is the builder for creating a Organization entity.
@@ -25,6 +25,12 @@ type OrganizationCreate struct {
 // SetName sets the "name" field.
 func (_c *OrganizationCreate) SetName(v string) *OrganizationCreate {
 	_c.mutation.SetName(v)
+	return _c
+}
+
+// SetCreatorID sets the "creator_id" field.
+func (_c *OrganizationCreate) SetCreatorID(v uuid.UUID) *OrganizationCreate {
+	_c.mutation.SetCreatorID(v)
 	return _c
 }
 
@@ -70,14 +76,14 @@ func (_c *OrganizationCreate) SetNillableID(v *uuid.UUID) *OrganizationCreate {
 	return _c
 }
 
-// AddUserIDs adds the "users" edge to the OrganizationUsers entity by IDs.
+// AddUserIDs adds the "users" edge to the User entity by IDs.
 func (_c *OrganizationCreate) AddUserIDs(ids ...uuid.UUID) *OrganizationCreate {
 	_c.mutation.AddUserIDs(ids...)
 	return _c
 }
 
-// AddUsers adds the "users" edges to the OrganizationUsers entity.
-func (_c *OrganizationCreate) AddUsers(v ...*OrganizationUsers) *OrganizationCreate {
+// AddUsers adds the "users" edges to the User entity.
+func (_c *OrganizationCreate) AddUsers(v ...*User) *OrganizationCreate {
 	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -139,6 +145,9 @@ func (_c *OrganizationCreate) check() error {
 	if _, ok := _c.mutation.Name(); !ok {
 		return &ValidationError{Name: "name", err: errors.New(`ent: missing required field "Organization.name"`)}
 	}
+	if _, ok := _c.mutation.CreatorID(); !ok {
+		return &ValidationError{Name: "creator_id", err: errors.New(`ent: missing required field "Organization.creator_id"`)}
+	}
 	if _, ok := _c.mutation.CreatedAt(); !ok {
 		return &ValidationError{Name: "created_at", err: errors.New(`ent: missing required field "Organization.created_at"`)}
 	}
@@ -184,6 +193,10 @@ func (_c *OrganizationCreate) createSpec() (*Organization, *sqlgraph.CreateSpec)
 		_spec.SetField(organization.FieldName, field.TypeString, value)
 		_node.Name = value
 	}
+	if value, ok := _c.mutation.CreatorID(); ok {
+		_spec.SetField(organization.FieldCreatorID, field.TypeUUID, value)
+		_node.CreatorID = value
+	}
 	if value, ok := _c.mutation.CreatedAt(); ok {
 		_spec.SetField(organization.FieldCreatedAt, field.TypeTime, value)
 		_node.CreatedAt = value
@@ -194,13 +207,13 @@ func (_c *OrganizationCreate) createSpec() (*Organization, *sqlgraph.CreateSpec)
 	}
 	if nodes := _c.mutation.UsersIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   organization.UsersTable,
-			Columns: []string{organization.UsersColumn},
+			Columns: organization.UsersPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organizationusers.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

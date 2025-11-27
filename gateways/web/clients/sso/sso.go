@@ -3,7 +3,7 @@ package sso
 import (
 	"fmt"
 	config "github.com/xilidan/backend/config/web"
-	pb "github.com/xilidan/backend/specs/proto/specs/proto/sso"
+	pb "github.com/xilidan/backend/specs/proto/sso"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials/insecure"
 )

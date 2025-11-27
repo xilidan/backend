@@ -13,8 +13,8 @@ import (
 	"entgo.io/ent/schema/field"
 	"github.com/google/uuid"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organization"
-	"github.com/xilidan/backend/services/sso/storage/postgres/ent/organizationusers"
 	"github.com/xilidan/backend/services/sso/storage/postgres/ent/predicate"
+	"github.com/xilidan/backend/services/sso/storage/postgres/ent/user"
 )
 
 // OrganizationUpdate is the builder for updating Organization entities.
@@ -40,6 +40,20 @@ func (_u *OrganizationUpdate) SetName(v string) *OrganizationUpdate {
 func (_u *OrganizationUpdate) SetNillableName(v *string) *OrganizationUpdate {
 	if v != nil {
 		_u.SetName(*v)
+	}
+	return _u
+}
+
+// SetCreatorID sets the "creator_id" field.
+func (_u *OrganizationUpdate) SetCreatorID(v uuid.UUID) *OrganizationUpdate {
+	_u.mutation.SetCreatorID(v)
+	return _u
+}
+
+// SetNillableCreatorID sets the "creator_id" field if the given value is not nil.
+func (_u *OrganizationUpdate) SetNillableCreatorID(v *uuid.UUID) *OrganizationUpdate {
+	if v != nil {
+		_u.SetCreatorID(*v)
 	}
 	return _u
 }
@@ -72,14 +86,14 @@ func (_u *OrganizationUpdate) SetNillableUpdatedAt(v *time.Time) *OrganizationUp
 	return _u
 }
 
-// AddUserIDs adds the "users" edge to the OrganizationUsers entity by IDs.
+// AddUserIDs adds the "users" edge to the User entity by IDs.
 func (_u *OrganizationUpdate) AddUserIDs(ids ...uuid.UUID) *OrganizationUpdate {
 	_u.mutation.AddUserIDs(ids...)
 	return _u
 }
 
-// AddUsers adds the "users" edges to the OrganizationUsers entity.
-func (_u *OrganizationUpdate) AddUsers(v ...*OrganizationUsers) *OrganizationUpdate {
+// AddUsers adds the "users" edges to the User entity.
+func (_u *OrganizationUpdate) AddUsers(v ...*User) *OrganizationUpdate {
 	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -92,20 +106,20 @@ func (_u *OrganizationUpdate) Mutation() *OrganizationMutation {
 	return _u.mutation
 }
 
-// ClearUsers clears all "users" edges to the OrganizationUsers entity.
+// ClearUsers clears all "users" edges to the User entity.
 func (_u *OrganizationUpdate) ClearUsers() *OrganizationUpdate {
 	_u.mutation.ClearUsers()
 	return _u
 }
 
-// RemoveUserIDs removes the "users" edge to OrganizationUsers entities by IDs.
+// RemoveUserIDs removes the "users" edge to User entities by IDs.
 func (_u *OrganizationUpdate) RemoveUserIDs(ids ...uuid.UUID) *OrganizationUpdate {
 	_u.mutation.RemoveUserIDs(ids...)
 	return _u
 }
 
-// RemoveUsers removes "users" edges to OrganizationUsers entities.
-func (_u *OrganizationUpdate) RemoveUsers(v ...*OrganizationUsers) *OrganizationUpdate {
+// RemoveUsers removes "users" edges to User entities.
+func (_u *OrganizationUpdate) RemoveUsers(v ...*User) *OrganizationUpdate {
 	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -152,6 +166,9 @@ func (_u *OrganizationUpdate) sqlSave(ctx context.Context) (_node int, err error
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(organization.FieldName, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.CreatorID(); ok {
+		_spec.SetField(organization.FieldCreatorID, field.TypeUUID, value)
+	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(organization.FieldCreatedAt, field.TypeTime, value)
 	}
@@ -160,26 +177,26 @@ func (_u *OrganizationUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if _u.mutation.UsersCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   organization.UsersTable,
-			Columns: []string{organization.UsersColumn},
+			Columns: organization.UsersPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organizationusers.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := _u.mutation.RemovedUsersIDs(); len(nodes) > 0 && !_u.mutation.UsersCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   organization.UsersTable,
-			Columns: []string{organization.UsersColumn},
+			Columns: organization.UsersPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organizationusers.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -189,13 +206,13 @@ func (_u *OrganizationUpdate) sqlSave(ctx context.Context) (_node int, err error
 	}
 	if nodes := _u.mutation.UsersIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   organization.UsersTable,
-			Columns: []string{organization.UsersColumn},
+			Columns: organization.UsersPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organizationusers.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -237,6 +254,20 @@ func (_u *OrganizationUpdateOne) SetNillableName(v *string) *OrganizationUpdateO
 	return _u
 }
 
+// SetCreatorID sets the "creator_id" field.
+func (_u *OrganizationUpdateOne) SetCreatorID(v uuid.UUID) *OrganizationUpdateOne {
+	_u.mutation.SetCreatorID(v)
+	return _u
+}
+
+// SetNillableCreatorID sets the "creator_id" field if the given value is not nil.
+func (_u *OrganizationUpdateOne) SetNillableCreatorID(v *uuid.UUID) *OrganizationUpdateOne {
+	if v != nil {
+		_u.SetCreatorID(*v)
+	}
+	return _u
+}
+
 // SetCreatedAt sets the "created_at" field.
 func (_u *OrganizationUpdateOne) SetCreatedAt(v time.Time) *OrganizationUpdateOne {
 	_u.mutation.SetCreatedAt(v)
@@ -265,14 +296,14 @@ func (_u *OrganizationUpdateOne) SetNillableUpdatedAt(v *time.Time) *Organizatio
 	return _u
 }
 
-// AddUserIDs adds the "users" edge to the OrganizationUsers entity by IDs.
+// AddUserIDs adds the "users" edge to the User entity by IDs.
 func (_u *OrganizationUpdateOne) AddUserIDs(ids ...uuid.UUID) *OrganizationUpdateOne {
 	_u.mutation.AddUserIDs(ids...)
 	return _u
 }
 
-// AddUsers adds the "users" edges to the OrganizationUsers entity.
-func (_u *OrganizationUpdateOne) AddUsers(v ...*OrganizationUsers) *OrganizationUpdateOne {
+// AddUsers adds the "users" edges to the User entity.
+func (_u *OrganizationUpdateOne) AddUsers(v ...*User) *OrganizationUpdateOne {
 	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -285,20 +316,20 @@ func (_u *OrganizationUpdateOne) Mutation() *OrganizationMutation {
 	return _u.mutation
 }
 
-// ClearUsers clears all "users" edges to the OrganizationUsers entity.
+// ClearUsers clears all "users" edges to the User entity.
 func (_u *OrganizationUpdateOne) ClearUsers() *OrganizationUpdateOne {
 	_u.mutation.ClearUsers()
 	return _u
 }
 
-// RemoveUserIDs removes the "users" edge to OrganizationUsers entities by IDs.
+// RemoveUserIDs removes the "users" edge to User entities by IDs.
 func (_u *OrganizationUpdateOne) RemoveUserIDs(ids ...uuid.UUID) *OrganizationUpdateOne {
 	_u.mutation.RemoveUserIDs(ids...)
 	return _u
 }
 
-// RemoveUsers removes "users" edges to OrganizationUsers entities.
-func (_u *OrganizationUpdateOne) RemoveUsers(v ...*OrganizationUsers) *OrganizationUpdateOne {
+// RemoveUsers removes "users" edges to User entities.
+func (_u *OrganizationUpdateOne) RemoveUsers(v ...*User) *OrganizationUpdateOne {
 	ids := make([]uuid.UUID, len(v))
 	for i := range v {
 		ids[i] = v[i].ID
@@ -375,6 +406,9 @@ func (_u *OrganizationUpdateOne) sqlSave(ctx context.Context) (_node *Organizati
 	if value, ok := _u.mutation.Name(); ok {
 		_spec.SetField(organization.FieldName, field.TypeString, value)
 	}
+	if value, ok := _u.mutation.CreatorID(); ok {
+		_spec.SetField(organization.FieldCreatorID, field.TypeUUID, value)
+	}
 	if value, ok := _u.mutation.CreatedAt(); ok {
 		_spec.SetField(organization.FieldCreatedAt, field.TypeTime, value)
 	}
@@ -383,26 +417,26 @@ func (_u *OrganizationUpdateOne) sqlSave(ctx context.Context) (_node *Organizati
 	}
 	if _u.mutation.UsersCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   organization.UsersTable,
-			Columns: []string{organization.UsersColumn},
+			Columns: organization.UsersPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organizationusers.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		_spec.Edges.Clear = append(_spec.Edges.Clear, edge)
 	}
 	if nodes := _u.mutation.RemovedUsersIDs(); len(nodes) > 0 && !_u.mutation.UsersCleared() {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   organization.UsersTable,
-			Columns: []string{organization.UsersColumn},
+			Columns: organization.UsersPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organizationusers.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {
@@ -412,13 +446,13 @@ func (_u *OrganizationUpdateOne) sqlSave(ctx context.Context) (_node *Organizati
 	}
 	if nodes := _u.mutation.UsersIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{
-			Rel:     sqlgraph.O2M,
+			Rel:     sqlgraph.M2M,
 			Inverse: false,
 			Table:   organization.UsersTable,
-			Columns: []string{organization.UsersColumn},
+			Columns: organization.UsersPrimaryKey,
 			Bidi:    false,
 			Target: &sqlgraph.EdgeTarget{
-				IDSpec: sqlgraph.NewFieldSpec(organizationusers.FieldID, field.TypeUUID),
+				IDSpec: sqlgraph.NewFieldSpec(user.FieldID, field.TypeUUID),
 			},
 		}
 		for _, k := range nodes {

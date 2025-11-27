@@ -20,6 +20,8 @@ type Organization struct {
 	ID uuid.UUID `json:"id,omitempty"`
 	// Name holds the value of the "name" field.
 	Name string `json:"name,omitempty"`
+	// CreatorID holds the value of the "creator_id" field.
+	CreatorID uuid.UUID `json:"creator_id,omitempty"`
 	// CreatedAt holds the value of the "created_at" field.
 	CreatedAt time.Time `json:"created_at,omitempty"`
 	// UpdatedAt holds the value of the "updated_at" field.
@@ -33,7 +35,7 @@ type Organization struct {
 // OrganizationEdges holds the relations/edges for other nodes in the graph.
 type OrganizationEdges struct {
 	// Users holds the value of the users edge.
-	Users []*OrganizationUsers `json:"users,omitempty"`
+	Users []*User `json:"users,omitempty"`
 	// loadedTypes holds the information for reporting if a
 	// type was loaded (or requested) in eager-loading or not.
 	loadedTypes [1]bool
@@ -41,7 +43,7 @@ type OrganizationEdges struct {
 
 // UsersOrErr returns the Users value or an error if the edge
 // was not loaded in eager-loading.
-func (e OrganizationEdges) UsersOrErr() ([]*OrganizationUsers, error) {
+func (e OrganizationEdges) UsersOrErr() ([]*User, error) {
 	if e.loadedTypes[0] {
 		return e.Users, nil
 	}
@@ -57,7 +59,7 @@ func (*Organization) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullString)
 		case organization.FieldCreatedAt, organization.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
-		case organization.FieldID:
+		case organization.FieldID, organization.FieldCreatorID:
 			values[i] = new(uuid.UUID)
 		default:
 			values[i] = new(sql.UnknownType)
@@ -86,6 +88,12 @@ func (_m *Organization) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Name = value.String
 			}
+		case organization.FieldCreatorID:
+			if value, ok := values[i].(*uuid.UUID); !ok {
+				return fmt.Errorf("unexpected type %T for field creator_id", values[i])
+			} else if value != nil {
+				_m.CreatorID = *value
+			}
 		case organization.FieldCreatedAt:
 			if value, ok := values[i].(*sql.NullTime); !ok {
 				return fmt.Errorf("unexpected type %T for field created_at", values[i])
@@ -112,7 +120,7 @@ func (_m *Organization) Value(name string) (ent.Value, error) {
 }
 
 // QueryUsers queries the "users" edge of the Organization entity.
-func (_m *Organization) QueryUsers() *OrganizationUsersQuery {
+func (_m *Organization) QueryUsers() *UserQuery {
 	return NewOrganizationClient(_m.config).QueryUsers(_m)
 }
 
@@ -141,6 +149,9 @@ func (_m *Organization) String() string {
 	builder.WriteString(fmt.Sprintf("id=%v, ", _m.ID))
 	builder.WriteString("name=")
 	builder.WriteString(_m.Name)
+	builder.WriteString(", ")
+	builder.WriteString("creator_id=")
+	builder.WriteString(fmt.Sprintf("%v", _m.CreatorID))
 	builder.WriteString(", ")
 	builder.WriteString("created_at=")
 	builder.WriteString(_m.CreatedAt.Format(time.ANSIC))

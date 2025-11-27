@@ -47,55 +47,6 @@ services:
       - POSTGRES_USER=sso_user
       - POSTGRES_PASSWORD=sso_password
       - POSTGRES_DB=sso_db
-services:
-  web-gateway:
-    build:
-      context: .
-      dockerfile: ./deploy/web/Dockerfile
-    container_name: web-gateway
-    ports:
-      - "8095:8080"
-    restart: unless-stopped
-    networks:
-      - app-network
-    environment:
-      - JWT_SECRET=your-secret-key-change-in-production
-      - SSO_PORT=50051
-      - SSO_URL=sso-service
-    depends_on:
-      - sso-service
-
-  sso-service:
-    build:
-      context: .
-      dockerfile: ./deploy/sso/Dockerfile
-    container_name: sso-service
-    restart: unless-stopped
-    networks:
-      - app-network
-    environment:
-      - DB_USER=sso_user
-      - DB_PASSWORD=sso_password
-      - DB_HOST=sso-db
-      - DB_NAME=sso_db
-      - DB_PORT=5432
-      - DB_SSLMODE=disable
-      - JWT_SECRET=your-secret-key-change-in-production
-      - PORT=50051
-    depends_on:
-      sso-db:
-        condition: service_healthy
-
-  sso-db:
-    image: postgres:16-alpine
-    container_name: sso-db
-    restart: unless-stopped
-    networks:
-      - app-network
-    environment:
-      - POSTGRES_USER=sso_user
-      - POSTGRES_PASSWORD=sso_password
-      - POSTGRES_DB=sso_db
     volumes:
       - sso-db-data:/var/lib/postgresql/data
     healthcheck:
@@ -132,6 +83,60 @@ services:
     networks:
       - app-network
 
+  codereview-service:
+    build:
+      context: .
+      dockerfile: ./deploy/codereview/Dockerfile
+    container_name: codereview-service
+    ports:
+      - "8001:8000"
+    restart: unless-stopped
+    networks:
+      - app-network
+    environment:
+      - SERVICE_NAME=codereview
+      - SERVICE_HOST=0.0.0.0
+      - SERVICE_PORT=8000
+      - LOG_LEVEL=INFO
+      - GITLAB_URL=${GITLAB_URL:-https://gitlab.com}
+      - GITLAB_TOKEN=${GITLAB_TOKEN:-}
+      - LLM_PROVIDER=${LLM_PROVIDER:-azure_openai}
+      - LLM_API_KEY=${LLM_API_KEY:-}
+      - LLM_MODEL=${LLM_MODEL:-}
+      - AZURE_CONFIG_PATH=${AZURE_CONFIG_PATH:-instance.json}
+      - USE_MOCK_LLM=${USE_MOCK_LLM:-false}
+      - REPOSITORY_TYPE=${REPOSITORY_TYPE:-memory}
+      - REDIS_URL=${REDIS_URL:-redis://codereview-redis:6379/0}
+    # Uncomment if using Redis
+    # depends_on:
+    #   - codereview-redis
+    depends_on:
+      - mongo
+
+  mongo:
+    image: mongo:6.0
+    container_name: codereview-mongo
+    restart: unless-stopped
+    networks:
+      - app-network
+    volumes:
+      - codereview-mongo-data:/data/db
+    ports:
+      - "27017:27017"
+
+  codereview-redis:
+    image: redis:7-alpine
+    container_name: codereview-redis
+    restart: unless-stopped
+    networks:
+      - app-network
+    volumes:
+      - codereview-redis-data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
 
 networks:
   app-network:
@@ -139,3 +144,5 @@ networks:
 
 volumes:
   sso-db-data:
+  codereview-mongo-data:
+  codereview-redis-data:

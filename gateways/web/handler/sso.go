@@ -6,7 +6,7 @@ import (
 
 	"github.com/xilidan/backend/pkg/json"
 	"github.com/xilidan/backend/pkg/jwt"
-	pb "github.com/xilidan/backend/specs/proto/specs/proto/sso"
+	pb "github.com/xilidan/backend/specs/proto/sso"
 )
 
 func (h *handler) LoginHandler(w http.ResponseWriter, r *http.Request) {
@@ -60,7 +60,30 @@ func (h *handler) GetUserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *handler) CreateOrganizationHandler(w http.ResponseWriter, r *http.Request) {
-	
+	req := &pb.CreateOrganizationReq{}
+	json.ParseProtoJSON(r, req)
+
+	token, err := jwt.ParseTokenFromHeader(r)
+	if err != nil {
+		json.WriteError(w, http.StatusForbidden, fmt.Errorf("access denied"))
+	}
+
+	userID, err := jwt.ParseUserID(r.Context(), token, h.cfg.JWTSecret)
+	if err != nil {
+		json.WriteError(w, http.StatusForbidden, fmt.Errorf("access denied"))
+		return
+	}
+
+	req.UserId = userID
+
+	res, err := h.SsoClient.CreateOrganization(r.Context(), req)
+	if err != nil {
+		json.WriteError(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	json.WriteProtoJSON(w, http.StatusOK, res)
+
 }
 
 func (h *handler) GetOrganizationHandler(w http.ResponseWriter, r *http.Request) {
