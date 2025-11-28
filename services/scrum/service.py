@@ -384,7 +384,7 @@ class JiraScrumMasterService:
                 created_items.append(item)
                 
             except Exception as e:
-                print(f"❌ ERROR processing item {item.get('summary')}: {str(e)}")
+                print(f"âŒ ERROR processing item {item.get('summary')}: {str(e)}")
                 # Continue with next item instead of failing everything
                 continue
                 
@@ -434,14 +434,14 @@ class JiraScrumMasterService:
             response.raise_for_status()
             result = response.json()
             
-            print(f"\n✅ SUCCESS: Epic created!")
+            print(f"\nâœ… SUCCESS: Epic created!")
             print(f"   - ID: {result.get('id', 'N/A')}")
             print(f"   - Key: {result.get('key', 'N/A')}")
             print(f"   - URL: {result.get('self', 'N/A')}")
             print("="*80 + "\n")
             return result
         except requests.RequestException as e:
-            print(f"\n❌ ERROR: Failed to create epic")
+            print(f"\nâŒ ERROR: Failed to create epic")
             print(f"   Error: {str(e)}")
             if hasattr(e, 'response') and e.response is not None:
                 print(f"   Response Status: {e.response.status_code}")
@@ -494,7 +494,7 @@ class JiraScrumMasterService:
             response.raise_for_status()
             result = response.json()
             
-            print(f"\n✅ SUCCESS: Task created!")
+            print(f"\nâœ… SUCCESS: Task created!")
             print(f"   - ID: {result.get('id', 'N/A')}")
             print(f"   - Key: {result.get('key', 'N/A')}")
             print(f"   - URL: {result.get('self', 'N/A')}")
@@ -503,7 +503,7 @@ class JiraScrumMasterService:
             print("="*80 + "\n")
             return result
         except requests.RequestException as e:
-            print(f"\n❌ ERROR: Failed to create task")
+            print(f"\nâŒ ERROR: Failed to create task")
             print(f"   Error: {str(e)}")
             if hasattr(e, 'response') and e.response is not None:
                 print(f"   Response Status: {e.response.status_code}")
@@ -548,7 +548,7 @@ class JiraScrumMasterService:
             response.raise_for_status()
             result = response.json()
             
-            print(f"\n✅ SUCCESS: Subtask created!")
+            print(f"\nâœ… SUCCESS: Subtask created!")
             print(f"   - ID: {result.get('id', 'N/A')}")
             print(f"   - Key: {result.get('key', 'N/A')}")
             print(f"   - URL: {result.get('self', 'N/A')}")
@@ -556,7 +556,7 @@ class JiraScrumMasterService:
             print("="*80 + "\n")
             return result
         except requests.RequestException as e:
-            print(f"\n❌ ERROR: Failed to create subtask")
+            print(f"\nâŒ ERROR: Failed to create subtask")
             print(f"   Error: {str(e)}")
             if hasattr(e, 'response') and e.response is not None:
                 print(f"   Response Status: {e.response.status_code}")
@@ -566,13 +566,13 @@ class JiraScrumMasterService:
 
             
             if response.status_code in [200, 204]:
-                print(f"✅ SUCCESS: Moved {len(issue_keys)} issues to sprint")
+                print(f"âœ… SUCCESS: Moved {len(issue_keys)} issues to sprint")
             else:
                 print(f"Response Body: {response.text}")
                 response.raise_for_status()
                 
         except requests.RequestException as e:
-            print(f"❌ ERROR moving issues to sprint: {str(e)}")
+            print(f"âŒ ERROR moving issues to sprint: {str(e)}")
             if hasattr(e, 'response') and e.response is not None:
                 print(f"Response Body: {e.response.text}")
             # Don't raise - this is a non-critical operation
@@ -581,7 +581,7 @@ class JiraScrumMasterService:
             print("="*80 + "\n")
             return result
         except requests.RequestException as e:
-            print(f"\n❌ ERROR: Failed to create subtask")
+            print(f"\nâŒ ERROR: Failed to create subtask")
             print(f"   Error: {str(e)}")
             if hasattr(e, 'response') and e.response is not None:
                 print(f"   Response Status: {e.response.status_code}")
@@ -615,14 +615,14 @@ class JiraScrumMasterService:
                 if sprint.get("state") == "active":
                     sprint_name = sprint.get("name", "Unknown")
                     sprint_id = sprint.get("id")
-                    print(f"✅ Found active sprint: {sprint_name} (ID: {sprint_id})")
+                    print(f"âœ… Found active sprint: {sprint_name} (ID: {sprint_id})")
                     return sprint_id
             
-            print("⚠️  No active sprint found")
+            print("âš ï¸  No active sprint found")
             return None
             
         except requests.RequestException as e:
-            print(f"❌ ERROR fetching sprints: {str(e)}")
+            print(f"âŒ ERROR fetching sprints: {str(e)}")
             return None
 
     async def move_issues_to_sprint(self, sprint_id: int, issue_keys: List[str], token: str):
@@ -655,13 +655,13 @@ class JiraScrumMasterService:
             print(f"Response Status: {response.status_code}")
             
             if response.status_code in [200, 204]:
-                print(f"✅ SUCCESS: Moved {len(issue_keys)} issues to sprint")
+                print(f"âœ… SUCCESS: Moved {len(issue_keys)} issues to sprint")
             else:
                 print(f"Response Body: {response.text}")
                 response.raise_for_status()
                 
         except requests.RequestException as e:
-            print(f"❌ ERROR moving issues to sprint: {str(e)}")
+            print(f"âŒ ERROR moving issues to sprint: {str(e)}")
             if hasattr(e, 'response') and e.response is not None:
                 print(f"Response Body: {e.response.text}")
             # Don't raise - this is a non-critical operation
@@ -801,14 +801,14 @@ class JiraScrumMasterService:
             response.raise_for_status()
             result = response.json()
             
-            print(f"\n✅ SUCCESS: Epic created!")
+            print(f"\nâœ… SUCCESS: Epic created!")
             print(f"   - ID: {result.get('id', 'N/A')}")
             print(f"   - Key: {result.get('key', 'N/A')}")
             print(f"   - URL: {result.get('self', 'N/A')}")
             print("="*80 + "\n")
             return result
         except requests.RequestException as e:
-            print(f"\n❌ ERROR: Failed to create epic")
+            print(f"\nâŒ ERROR: Failed to create epic")
             print(f"   Error: {str(e)}")
             if hasattr(e, 'response') and e.response is not None:
                 print(f"   Response Status: {e.response.status_code}")
@@ -862,7 +862,7 @@ class JiraScrumMasterService:
             response.raise_for_status()
             result = response.json()
             
-            print(f"\n✅ SUCCESS: Task created!")
+            print(f"\nâœ… SUCCESS: Task created!")
             print(f"   - ID: {result.get('id', 'N/A')}")
             print(f"   - Key: {result.get('key', 'N/A')}")
             print(f"   - URL: {result.get('self', 'N/A')}")
@@ -871,7 +871,7 @@ class JiraScrumMasterService:
             print("="*80 + "\n")
             return result
         except requests.RequestException as e:
-            print(f"\n❌ ERROR: Failed to create task")
+            print(f"\nâŒ ERROR: Failed to create task")
             print(f"   Error: {str(e)}")
             if hasattr(e, 'response') and e.response is not None:
                 print(f"   Response Status: {e.response.status_code}")
@@ -916,7 +916,7 @@ class JiraScrumMasterService:
             response.raise_for_status()
             result = response.json()
             
-            print(f"\n✅ SUCCESS: Subtask created!")
+            print(f"\nâœ… SUCCESS: Subtask created!")
             print(f"   - ID: {result.get('id', 'N/A')}")
             print(f"   - Key: {result.get('key', 'N/A')}")
             print(f"   - URL: {result.get('self', 'N/A')}")
@@ -924,7 +924,7 @@ class JiraScrumMasterService:
             print("="*80 + "\n")
             return result
         except requests.RequestException as e:
-            print(f"\n❌ ERROR: Failed to create subtask")
+            print(f"\nâŒ ERROR: Failed to create subtask")
             print(f"   Error: {str(e)}")
             if hasattr(e, 'response') and e.response is not None:
                 print(f"   Response Status: {e.response.status_code}")
@@ -958,14 +958,14 @@ class JiraScrumMasterService:
                 if sprint.get("state") == "active":
                     sprint_name = sprint.get("name", "Unknown")
                     sprint_id = sprint.get("id")
-                    print(f"✅ Found active sprint: {sprint_name} (ID: {sprint_id})")
+                    print(f"âœ… Found active sprint: {sprint_name} (ID: {sprint_id})")
                     return sprint_id
             
-            print("⚠️  No active sprint found")
+            print("âš ï¸  No active sprint found")
             return None
             
         except requests.RequestException as e:
-            print(f"❌ ERROR fetching sprints: {str(e)}")
+            print(f"âŒ ERROR fetching sprints: {str(e)}")
             return None
 
     async def move_issues_to_sprint(self, sprint_id: int, issue_keys: List[str], token: str):
@@ -998,13 +998,13 @@ class JiraScrumMasterService:
             print(f"Response Status: {response.status_code}")
             
             if response.status_code in [200, 204]:
-                print(f"✅ SUCCESS: Moved {len(issue_keys)} issues to sprint")
+                print(f"âœ… SUCCESS: Moved {len(issue_keys)} issues to sprint")
             else:
                 print(f"Response Body: {response.text}")
                 response.raise_for_status()
                 
         except requests.RequestException as e:
-            print(f"❌ ERROR moving issues to sprint: {str(e)}")
+            print(f"âŒ ERROR moving issues to sprint: {str(e)}")
             if hasattr(e, 'response') and e.response is not None:
                 print(f"Response Body: {e.response.text}")
             # Don't raise - this is a non-critical operation
@@ -1145,63 +1145,44 @@ class JiraScrumMasterService:
             return 0
 
     async def chat(self, message: str, session_id: str, file: UploadFile = None, authorization: str = None):
-        """
-        Stream chat response.
-        """
-        # 1. Parse file if provided
         file_context = ""
         if file:
             try:
-                # Recreate decompose logic if authorization is present
                 if authorization:
-                    yield "Analyzing file...\n"
-                    # Parse
+                    yield "data: Analyzing file...\n\n"
                     text = await self.parse_file(file)
-                    
-                    # Token
                     token = authorization.split(" ")[1] if " " in authorization else authorization
-                    
-                    # Org Info
                     organization = await self.get_organization_info(token)
                     
-                    yield "Decomposing tasks (this may take a moment)...\n"
-                    # Decompose
+                    yield "data: Decomposing tasks (this may take a moment)...\n\n"
                     tasks = await self.decompose_tasks(text)
-                    
-                    # Assign
                     assigned_tasks = self.assign_tasks(tasks, organization)
                     
-                    yield "Creating tasks in Jira...\n"
-                    # Create
+                    yield "data: Creating tasks in Jira...\n\n"
                     final_tasks = await self.create_jira_tasks(assigned_tasks, token)
                     
-                    yield "Tasks created. Generating response...\n"
-                    # Format result for context
+                    yield "data: Tasks created. Generating response...\n\n"
                     task_summary = "\n".join([f"- {t.get('jira_key')} {t.get('summary')}" for t in final_tasks])
                     file_context = f"Uploaded File Processed. Created Jira Tasks:\n{task_summary}\n"
                 else:
-                     # Fallback to simple summary if no auth (shouldn't happen if main.py enforces it, but good safety)
                     file_content = await self.parse_file(file)
                     if self.count_tokens(file_content) > 5000:
                         file_summary = await self.summarize_text(file_content)
                         file_context = f"Uploaded File Summary:\n{file_summary}\n"
                     else:
                         file_context = f"Uploaded File Content:\n{file_content}\n"
-
             except Exception as e:
                 print(f"Error processing file: {e}")
                 file_context = f"Error processing uploaded file: {e}\n"
 
-        # 2. Get Chat History
-        history = await self.mongo_client.get_chat_history(session_id)
+        yield "data: Loading context...\n\n"
         
-        # 3. Get Cached Jira Context
+        history = await self.mongo_client.get_chat_history(session_id)
         cached_issues = await self.mongo_client.get_cached_issues(limit=20)
         jira_context = "Relevant Jira Issues:\n"
         for issue in cached_issues:
             jira_context += f"- [{issue['key']}] {issue['summary']} ({issue['status']})\n"
 
-        # 4. Construct Prompt
         system_prompt = """You are an expert Scrum Master assistant. 
         Use the provided Jira context and file content to answer the user's questions.
         If the user asks to create tasks, guide them on how to structure the request or use the decompose feature.
@@ -1209,16 +1190,12 @@ class JiraScrumMasterService:
         """
         
         messages = [{"role": "system", "content": system_prompt}]
-        
-        # Add history
         for msg in history:
             messages.append({"role": msg["role"], "content": msg["content"]})
-            
-        # Add current context and message
+        
         user_content = f"{jira_context}\n\n{file_context}\n\nUser Question: {message}"
         messages.append({"role": "user", "content": user_content})
 
-        # 5. Stream Response
         response = await self.client.chat.completions.create(
             model=settings.AZURE_OPENAI_DEPLOYMENT_NAME,
             messages=messages,
@@ -1230,10 +1207,7 @@ class JiraScrumMasterService:
             if chunk.choices and chunk.choices[0].delta.content:
                 content = chunk.choices[0].delta.content
                 full_response += content
-                yield content
+                yield f"data: {content}\n\n"
 
-        # 6. Save to History (User message and Assistant response)
-        # Note: We save the raw user message, not the one with context injected, to keep history clean?
-        # Or maybe we want context? Usually just the user message.
         await self.mongo_client.save_message(session_id, "user", message)
         await self.mongo_client.save_message(session_id, "assistant", full_response)
