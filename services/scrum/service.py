@@ -1154,6 +1154,7 @@ class JiraScrumMasterService:
             try:
                 # Recreate decompose logic if authorization is present
                 if authorization:
+                    yield "Analyzing file...\n"
                     # Parse
                     text = await self.parse_file(file)
                     
@@ -1163,15 +1164,18 @@ class JiraScrumMasterService:
                     # Org Info
                     organization = await self.get_organization_info(token)
                     
+                    yield "Decomposing tasks (this may take a moment)...\n"
                     # Decompose
                     tasks = await self.decompose_tasks(text)
                     
                     # Assign
                     assigned_tasks = self.assign_tasks(tasks, organization)
                     
+                    yield "Creating tasks in Jira...\n"
                     # Create
                     final_tasks = await self.create_jira_tasks(assigned_tasks, token)
                     
+                    yield "Tasks created. Generating response...\n"
                     # Format result for context
                     task_summary = "\n".join([f"- {t.get('jira_key')} {t.get('summary')}" for t in final_tasks])
                     file_context = f"Uploaded File Processed. Created Jira Tasks:\n{task_summary}\n"
