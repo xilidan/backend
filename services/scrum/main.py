@@ -1,4 +1,5 @@
-from fastapi import FastAPI, UploadFile, File, HTTPException, Header
+from fastapi import FastAPI, UploadFile, File, HTTPException, Header, Form
+from fastapi.responses import StreamingResponse
 from service import JiraScrumMasterService
 from typing import List, Dict, Any, Optional
 from pydantic import BaseModel
@@ -30,8 +31,8 @@ async def decompose_document(
         # 4. Assign Tasks
         assigned_tasks = service.assign_tasks(tasks, organization)
         
-        # 5. Create Tasks in Jira (Mocked)
-        final_tasks = await service.create_jira_tasks(assigned_tasks)
+        # 5. Create Tasks in Jira (Real)
+        final_tasks = await service.create_jira_tasks(assigned_tasks, token)
         
         return final_tasks
     except ValueError as e:
@@ -93,6 +94,22 @@ async def analyze_transcription(request: TranscriptionRequest):
         return result
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+@app.post("/chat")
+async def chat(
+    message: str = Form(...),
+    session_id: str = Form(...),
+    file: UploadFile = File(None)
+):
+    try:
+        return StreamingResponse(service.chat(message, session_id, file), media_type="text/plain")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.on_event("startup")
+async def startup_event():
+    # Sync Jira data on startup
+    await service.sync_jira_data()
 
 if __name__ == "__main__":
     import uvicorn

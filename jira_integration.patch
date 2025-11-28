@@ -1,0 +1,117 @@
+--- a/services/scrum/service.py
++++ b/services/scrum/service.py
+@@ -278,9 +278,16 @@ class JiraScrumMasterService:
+             
+             if "required_skills" in item:
+                 assignee = find_best_match(item["required_skills"], complexity)
+-                item["assignee"] = f"{assignee['name']} {assignee['surname']}}" if assignee else "Unassigned"
+                 if assignee:
++                    item["assignee_name"] = f"{assignee.get('name', '')} {assignee.get('surname', '')}"
++                    item["assignee_id"] = assignee.get("id")
++                    item["assignee_email"] = assignee.get("email")
+                     item["assignee_rating"] = assignee.get('rating', 0)
++                else:
++                    item["assignee_name"] = "Unassigned"
++                    item["assignee_id"] = None
++                    item["assignee_email"] = None
+             
+             if "stories" in item:
+                 item["stories"] = [process_item(story) for story in item["stories"]]
+@@ -295,23 +302,73 @@ class JiraScrumMasterService:
+ 
+ 
+     async def create_jira_tasks(self, tasks: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+-        # Mock Jira creation
++        import requests
+         created_tasks = []
+         
+-        def mock_create(item, parent_id=None):
+-            # Simulate creating a task in Jira and getting an ID
+-            fake_id = f"JIRA-{len(created_tasks) + 100}"
+-            item["jira_id"] = fake_id
+-            item["parent_id"] = parent_id
+-            created_tasks.append(item)
+-            print(f"Created Jira {item['type']}: {item['summary']} ({fake_id}) assigned to {item.get('assignee', 'Unassigned')}")
+-            
+-            if "stories" in item:
+-                for story in item["stories"]:
+-                    mock_create(story, fake_id)
+-            
+-            if "subtasks" in item:
+-                for subtask in item["subtasks"]:
+-                    mock_create(subtask, fake_id)
+-            
+-            return item
+-
+-        return [mock_create(task) for task in tasks]
++        print(f"Creating tasks in Jira at {settings.JIRA_API_URL}...")
++
++        def create_epic(epic):
++            try:
++                payload = {"summary": epic.get("summary", "Untitled Epic")}
++                response = requests.post(f"{settings.JIRA_API_URL}/epics", json=payload)
++                response.raise_for_status()
++                data = response.json()
++                epic["jira_id"] = data.get("id")
++                epic["jira_key"] = data.get("key")
++                epic["jira_link"] = data.get("self")
++                print(f"Created Epic: {epic['jira_key']}")
++                return epic
++            except Exception as e:
++                print(f"Failed to create Epic '{epic.get('summary')}': {e}")
++                epic["error"] = str(e)
++                return epic
++
++        def create_issue(issue, parent_key=None):
++            try:
++                payload = {
++                    "summary": issue.get("summary", "Untitled Issue"),
++                    "assigneeAccountId": issue.get("assignee_id"),
++                    "assigneeEmail": issue.get("assignee_email")
++                }
++                response = requests.post(f"{settings.JIRA_API_URL}/issues", json=payload)
++                response.raise_for_status()
++                data = response.json()
++                issue["jira_id"] = data.get("id")
++                issue["jira_key"] = data.get("key")
++                issue["jira_link"] = data.get("self")
++                print(f"Created Issue: {issue['jira_key']} assigned to {issue.get('assignee_email')}")
++                return issue
++            except Exception as e:
++                print(f"Failed to create Issue '{issue.get('summary')}': {e}")
++                issue["error"] = str(e)
++                return issue
++
++        def create_subtask(subtask, parent_key):
++            try:
++                payload = {
++                    "summary": subtask.get("summary", "Untitled Subtask"),
++                    "parentKey": parent_key
++                }
++                response = requests.post(f"{settings.JIRA_API_URL}/subtasks", json=payload)
++                response.raise_for_status()
++                data = response.json()
++                subtask["jira_id"] = data.get("id")
++                subtask["jira_key"] = data.get("key")
++                subtask["jira_link"] = data.get("self")
++                print(f"Created Subtask: {subtask['jira_key']} for parent {parent_key}")
++                return subtask
++            except Exception as e:
++                print(f"Failed to create Subtask '{subtask.get('summary')}': {e}")
++                subtask["error"] = str(e)
++                return subtask
++
++        for task in tasks:
++            if task.get("type") == "Epic":
++                processed_epic = create_epic(task)
++                if "stories" in task and processed_epic.get("jira_key"):
++                    for story in task["stories"]:
++                        processed_story = create_issue(story, processed_epic["jira_key"])
++                        if "subtasks" in story and processed_story.get("jira_key"):
++                            for subtask in story["subtasks"]:
++                                create_subtask(subtask, processed_story["jira_key"])
++                created_tasks.append(processed_epic)
++            else:
++                created_tasks.append(create_issue(task))
++
++        return created_tasks

@@ -1,6 +1,7 @@
 fastapi
 uvicorn
 python-multipart
+motor>=3.3.0
 openai
 python-docx
 pypdf

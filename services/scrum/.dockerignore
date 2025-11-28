@@ -1,0 +1,30 @@
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Environment variables
+.env
+
+# Git
+.git
+.gitignore
+
+# Tests and Documentation
+test_*.py
+*_test.py
+tests/
+*.md
+*.docx
+create_test_doc.py
+example_usage.py
+
+# IDE
+.vscode
+.idea
