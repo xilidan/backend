@@ -594,6 +594,8 @@ class JiraScrumMasterService:
         I have a transcription of a meeting and a list of existing Jira issues.
         Your goal is to identify important questions or topics that were NOT discussed in the meeting but are relevant to the existing issues or the project context implied by the transcription.
         
+        CRITICAL: Detect the language used in the meeting transcript and respond in that EXACT SAME LANGUAGE. If the transcript is in Russian, respond in Russian. If in English, respond in English.
+        
         Existing Jira Issues:
         {issues_context[:20000]}
         
@@ -610,19 +612,27 @@ class JiraScrumMasterService:
         4. Generate a list of important questions to ask the team.
         
         Output Format:
-        Return the response in Markdown format.
-
+        Return ONLY valid HTML content formatted for Telegram's HTML parser. Use these tags ONLY:
+        - <b>text</b> for bold
+        - <i>text</i> for italic
+        - <u>text</u> for underline
+        - <s>text</s> for strikethrough
+        - <code>text</code> for inline code
+        - <pre>text</pre> for code blocks
+        - <a href="url">text</a> for links
+        
+        Structure your response with proper headings using <b> tags and organize questions in a clear list format.
+        Do NOT use markdown, do NOT wrap in code blocks, return ONLY the HTML content.
         """
 
         response = await self.client.chat.completions.create(
             model=settings.AZURE_OPENAI_DEPLOYMENT_NAME,
             messages=[
-                {"role": "system", "content": "You are a helpful technical assistant."},
+                {"role": "system", "content": "You are a helpful technical assistant that outputs valid HTML."},
                 {"role": "user", "content": prompt}
             ]
         )
         
         result_text = response.choices[0].message.content
-        clean = result_text.replace("```markdown", "").replace("```", "").strip()
+        clean = result_text.replace("```html", "").replace("```", "").strip()
         return {"text": clean}
-
