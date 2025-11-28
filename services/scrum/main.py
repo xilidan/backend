@@ -30,8 +30,8 @@ async def decompose_document(
         # 4. Assign Tasks
         assigned_tasks = service.assign_tasks(tasks, organization)
         
-        # 5. Create Tasks in Jira (Mocked)
-        final_tasks = await service.create_jira_tasks(assigned_tasks)
+        # 5. Create Tasks in Jira (Real)
+        final_tasks = await service.create_jira_tasks(assigned_tasks, token)
         
         return final_tasks
     except ValueError as e:

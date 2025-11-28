@@ -9,6 +9,7 @@ class Settings:
     AZURE_OPENAI_DEPLOYMENT_NAME = os.getenv("AZURE_OPENAI_DEPLOYMENT_NAME")
     API_VERSION = os.getenv("API_VERSION")
     BACKEND_API_URL = os.getenv("BACKEND_API_URL", "https://api.azed.kz/api/v1")
+    JIRA_API_URL = os.getenv("JIRA_API_URL","https://jira.azed.kz/api/jira")   
 
 print(f"Loaded API Key: {Settings.AZURE_OPENAI_API_KEY[:5]}..." if Settings.AZURE_OPENAI_API_KEY else "API Key is None")
 
