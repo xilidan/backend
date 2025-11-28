@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"fmt"
 	"net/http"
 
 	"github.com/xilidan/backend/pkg/json"
@@ -65,7 +64,7 @@ func (h *Handler) Webhook(w http.ResponseWriter, r *http.Request) {
 	req := &Request{}
 	json.ParseJSON(r, req)
 
-	fmt.Printf("request: %v", req)
+	h.log.Debug("req", "req", req)
 
 	response := &Response{
 		Message: "test",
