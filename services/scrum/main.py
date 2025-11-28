@@ -107,7 +107,19 @@ async def chat(
     authorization: Optional[str] = Header(None)
 ):
     try:
-        return StreamingResponse(service.chat(message, session_id, file, authorization), media_type="text/event-stream")
+        async def event_generator():
+            async for chunk in service.chat(message, session_id, file, authorization):
+                yield chunk
+        
+        return StreamingResponse(
+            event_generator(), 
+            media_type="text/event-stream",
+            headers={
+                "Cache-Control": "no-cache",
+                "Connection": "keep-alive",
+                "X-Accel-Buffering": "no"
+            }
+        )
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

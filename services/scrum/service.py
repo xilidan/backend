@@ -1,5 +1,6 @@
 import io
 import json
+import asyncio
 from typing import List, Dict, Any, Optional
 from fastapi import UploadFile
 import docx
@@ -1150,18 +1151,22 @@ class JiraScrumMasterService:
             try:
                 if authorization:
                     yield "data: Analyzing file...\n\n"
+                    await asyncio.sleep(0)
                     text = await self.parse_file(file)
                     token = authorization.split(" ")[1] if " " in authorization else authorization
                     organization = await self.get_organization_info(token)
                     
                     yield "data: Decomposing tasks (this may take a moment)...\n\n"
+                    await asyncio.sleep(0)
                     tasks = await self.decompose_tasks(text)
                     assigned_tasks = self.assign_tasks(tasks, organization)
                     
                     yield "data: Creating tasks in Jira...\n\n"
+                    await asyncio.sleep(0)
                     final_tasks = await self.create_jira_tasks(assigned_tasks, token)
                     
                     yield "data: Tasks created. Generating response...\n\n"
+                    await asyncio.sleep(0)
                     task_summary = "\n".join([f"- {t.get('jira_key')} {t.get('summary')}" for t in final_tasks])
                     file_context = f"Uploaded File Processed. Created Jira Tasks:\n{task_summary}\n"
                 else:
@@ -1176,6 +1181,7 @@ class JiraScrumMasterService:
                 file_context = f"Error processing uploaded file: {e}\n"
 
         yield "data: Loading context...\n\n"
+        await asyncio.sleep(0)
         
         history = await self.mongo_client.get_chat_history(session_id)
         cached_issues = await self.mongo_client.get_cached_issues(limit=20)
@@ -1208,6 +1214,7 @@ class JiraScrumMasterService:
                 content = chunk.choices[0].delta.content
                 full_response += content
                 yield f"data: {content}\n\n"
+                await asyncio.sleep(0)
 
         await self.mongo_client.save_message(session_id, "user", message)
         await self.mongo_client.save_message(session_id, "assistant", full_response)
