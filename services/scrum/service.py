@@ -310,10 +310,18 @@ class JiraScrumMasterService:
 
     async def create_jira_tasks(self, tasks: List[Dict[str, Any]], token: str) -> List[Dict[str, Any]]:
         created_items = []
+        created_issue_keys = []  # Track all created issue keys
         
         print("\n" + "="*80)
         print("[JIRA INTEGRATION] Starting Batch Creation")
         print("="*80)
+        
+        # Get active sprint ID
+        active_sprint_id = await self.get_active_sprint(token)
+        if active_sprint_id:
+            print(f"[INFO] Active Sprint found: {active_sprint_id}")
+        else:
+            print("[INFO] No active sprint found. Issues will remain in backlog.")
         
         for item in tasks:
             try:
@@ -451,6 +459,260 @@ class JiraScrumMasterService:
             payload["assigneeAccountId"] = assignee_account_id
         if assignee_email:
             payload["assigneeEmail"] = assignee_email
+        
+        print("\n" + "="*80)
+        print("[JIRA API] Creating Task (Issue)")
+        print("="*80)
+        print(f"URL: {url}")
+        print(f"Payload: {json.dumps(payload, indent=2)}")
+        print(f"Token: {token[:10]}..." if len(token) > 10 else f"Token: {token}")
+        
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=10)
+            print(f"\nResponse Status: {response.status_code}")
+            print(f"Response Body: {response.text}")
+            
+            response.raise_for_status()
+            result = response.json()
+            
+            print(f"\n✅ SUCCESS: Task created!")
+            print(f"   - ID: {result.get('id', 'N/A')}")
+            print(f"   - Key: {result.get('key', 'N/A')}")
+            print(f"   - URL: {result.get('self', 'N/A')}")
+            if assignee_email or assignee_account_id:
+                print(f"   - Assignee: {assignee_email or assignee_account_id}")
+            print("="*80 + "\n")
+            return result
+        except requests.RequestException as e:
+            print(f"\n❌ ERROR: Failed to create task")
+            print(f"   Error: {str(e)}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"   Response Status: {e.response.status_code}")
+                print(f"   Response Body: {e.response.text}")
+            print("="*80 + "\n")
+            raise ValueError(f"Failed to create task: {str(e)}")
+
+    async def create_subtask(self, summary: str, parent_key: str, token: str) -> Dict[str, Any]:
+        """
+        Create a subtask in Jira.
+        
+        Args:
+            summary: The subtask title/summary
+            parent_key: Key of the parent task (e.g., "SCRUM-15")
+            token: Authorization token for the request
+            
+        Returns:
+            Dictionary with id, key, and self fields from Jira response
+        """
+        url = f"{settings.JIRA_API_URL}/subtasks"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "summary": summary,
+            "parentKey": parent_key
+        }
+        
+        print("\n" + "="*80)
+        print("[JIRA API] Creating Subtask")
+        print("="*80)
+        print(f"URL: {url}")
+        print(f"Payload: {json.dumps(payload, indent=2)}")
+        print(f"Token: {token[:10]}..." if len(token) > 10 else f"Token: {token}")
+        
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=10)
+            print(f"\nResponse Status: {response.status_code}")
+            print(f"Response Body: {response.text}")
+            
+            response.raise_for_status()
+            result = response.json()
+            
+            print(f"\n✅ SUCCESS: Subtask created!")
+            print(f"   - ID: {result.get('id', 'N/A')}")
+            print(f"   - Key: {result.get('key', 'N/A')}")
+            print(f"   - URL: {result.get('self', 'N/A')}")
+            print(f"   - Parent: {parent_key}")
+            print("="*80 + "\n")
+            return result
+        except requests.RequestException as e:
+            print(f"\n❌ ERROR: Failed to create subtask")
+            print(f"   Error: {str(e)}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"   Response Status: {e.response.status_code}")
+                print(f"   Response Body: {e.response.text}")
+            print("="*80 + "\n")
+            raise ValueError(f"Failed to create subtask: {str(e)}")
+
+            
+            if response.status_code in [200, 204]:
+                print(f"✅ SUCCESS: Moved {len(issue_keys)} issues to sprint")
+            else:
+                print(f"Response Body: {response.text}")
+                response.raise_for_status()
+                
+        except requests.RequestException as e:
+            print(f"❌ ERROR moving issues to sprint: {str(e)}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"Response Body: {e.response.text}")
+            # Don't raise - this is a non-critical operation
+
+            print(f"   - Parent: {parent_key}")
+            print("="*80 + "\n")
+            return result
+        except requests.RequestException as e:
+            print(f"\n❌ ERROR: Failed to create subtask")
+            print(f"   Error: {str(e)}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"   Response Status: {e.response.status_code}")
+                print(f"   Response Body: {e.response.text}")
+            print("="*80 + "\n")
+            raise ValueError(f"Failed to create subtask: {str(e)}")
+
+    async def analyze_transcription(self, request) -> Dict[str, str]:
+        
+        jira_url = "https://jira.azed.kz/api/jira/issues?sort=deadline&limit=10"
+        print(f"Fetching Jira issues from {jira_url}...")
+        
+        try:
+                # 1. Create the main item (Epic or Task)
+                summary = item.get('summary', 'Untitled')
+                item_type = item.get('type', 'Task')
+                assignee_email = item.get('assignee_email')
+                
+                jira_res = None
+                if item_type == 'Epic':
+                    jira_res = await self.create_epic(summary, token)
+                else:
+                    # Story or Task
+                    jira_res = await self.create_task(summary, assignee_email=assignee_email, token=token)
+                
+                if jira_res:
+                    item['jira_key'] = jira_res.get('key')
+                    item['jira_id'] = jira_res.get('id')
+                    item['jira_link'] = jira_res.get('self')
+                
+                # 2. Process Stories (if this is an Epic)
+                if 'stories' in item:
+                    for story in item['stories']:
+                        story_summary = story.get('summary', 'Untitled Story')
+                        story_assignee = story.get('assignee_email')
+                        
+                        # Create Story/Task
+                        story_res = await self.create_task(story_summary, assignee_email=story_assignee, token=token)
+                        
+                        story['jira_key'] = story_res.get('key')
+                        story['jira_id'] = story_res.get('id')
+                        story['jira_link'] = story_res.get('self')
+                        
+                        # 3. Process Subtasks for this Story
+                        if 'subtasks' in story:
+                            for subtask in story['subtasks']:
+                                sub_summary = subtask.get('summary', 'Untitled Subtask')
+                                await self.create_subtask(sub_summary, parent_key=story_res.get('key'), token=token)
+                
+                # 3. Process Subtasks (if this item has direct subtasks)
+                if 'subtasks' in item and item_type != 'Epic':
+                     for subtask in item['subtasks']:
+                        sub_summary = subtask.get('summary', 'Untitled Subtask')
+                        # Only create subtask if we have a parent key
+                        if item.get('jira_key'):
+                            await self.create_subtask(sub_summary, parent_key=item['jira_key'], token=token)
+                            
+                created_items.append(item)
+                
+            except Exception as e:
+                print(f"❌ ERROR processing item {item.get('summary')}: {str(e)}")
+                # Continue with next item instead of failing everything
+                continue
+                
+        print("\n" + "="*80)
+        print("[JIRA INTEGRATION] Batch Creation Completed")
+        print("="*80 + "\n")
+        
+        return created_items
+
+    async def create_epic(self, summary: str, token: str) -> Dict[str, Any]:
+        """
+        Create an epic in Jira.
+        
+        Args:
+            summary: The epic title/summary
+            token: Authorization token for the request
+            
+        Returns:
+            Dictionary with id, key, and self fields from Jira response
+        """
+        url = f"{settings.JIRA_API_URL}/epics"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "summary": summary
+        }
+        
+        print("\n" + "="*80)
+        print("[JIRA API] Creating Epic")
+        print("="*80)
+        print(f"URL: {url}")
+        print(f"Payload: {json.dumps(payload, indent=2)}")
+        print(f"Token: {token[:10]}..." if len(token) > 10 else f"Token: {token}")
+        
+        try:
+            response = requests.post(url, headers=headers, json=payload, timeout=10)
+            print(f"\nResponse Status: {response.status_code}")
+            print(f"Response Body: {response.text}")
+            
+            response.raise_for_status()
+            result = response.json()
+            
+            print(f"\n✅ SUCCESS: Epic created!")
+            print(f"   - ID: {result.get('id', 'N/A')}")
+            print(f"   - Key: {result.get('key', 'N/A')}")
+            print(f"   - URL: {result.get('self', 'N/A')}")
+            print("="*80 + "\n")
+            return result
+        except requests.RequestException as e:
+            print(f"\n❌ ERROR: Failed to create epic")
+            print(f"   Error: {str(e)}")
+            if hasattr(e, 'response') and e.response is not None:
+                print(f"   Response Status: {e.response.status_code}")
+                print(f"   Response Body: {e.response.text}")
+            print("="*80 + "\n")
+            raise ValueError(f"Failed to create epic: {str(e)}")
+
+    async def create_task(self, summary: str, assignee_account_id: str = None, 
+                     assignee_email: str = None, due_date: str = None, token: str =  None) -> Dict[str, Any]:
+        """
+        Create a task (issue) in Jira.
+        
+        Args:
+            summary: The task title/summary
+            assignee_account_id: Account ID of the assignee (optional)
+            assignee_email: Email of the assignee (optional)
+            token: Authorization token for the request
+            
+        Returns:
+            Dictionary with id, key, and self fields from Jira response
+        """
+        url = f"{settings.JIRA_API_URL}/issues"
+        headers = {
+            "Authorization": f"Bearer {token}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "summary": summary
+        }
+        
+        if assignee_account_id:
+            payload["assigneeAccountId"] = assignee_account_id
+        if assignee_email:
+            payload["assigneeEmail"] = assignee_email
+        if due_date:
+            payload["dueDate"] = due_date
+
         
         print("\n" + "="*80)
         print("[JIRA API] Creating Task (Issue)")
