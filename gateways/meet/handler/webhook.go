@@ -111,11 +111,21 @@ type ChatIDResponse struct {
 	Message     string `json:"message"`
 }
 
+type AnalyzeResponse struct {
+	Text string `json:"text"`
+}
+
 func (h *Handler) Webhook(w http.ResponseWriter, r *http.Request) {
 	req := &Request{}
 	jsonpkg.ParseJSON(r, req)
 
 	h.log.Debug("req", "req", req)
+
+	// Send the same JSON to analyze-transcription endpoint
+	analysisResponse, err := sendToAnalyze(req)
+	if err != nil {
+		h.log.Error("failed to send to analyze endpoint", "error", err)
+	}
 
 	// Send to Telegram if chat ID is set
 	chatIDMu.RLock()
@@ -123,8 +133,16 @@ func (h *Handler) Webhook(w http.ResponseWriter, r *http.Request) {
 	chatIDMu.RUnlock()
 
 	if currentChatID != "" {
+		// Send original meeting summary
 		if err := sendToTelegram(req, currentChatID); err != nil {
 			h.log.Error("failed to send to telegram", "error", err)
+		}
+
+		// Send analysis response if available
+		if analysisResponse != nil && analysisResponse.Text != "" {
+			if err := sendAnalysisToTelegram(analysisResponse.Text, currentChatID); err != nil {
+				h.log.Error("failed to send analysis to telegram", "error", err)
+			}
 		}
 	} else {
 		h.log.Warn("telegram chat ID not set, skipping message send")
@@ -336,4 +354,57 @@ func escapeHTML(s string) string {
 	s = strings.ReplaceAll(s, "<", "&lt;")
 	s = strings.ReplaceAll(s, ">", "&gt;")
 	return s
+}
+
+func sendToAnalyze(req *Request) (*AnalyzeResponse, error) {
+	jsonData, err := json.Marshal(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to marshal request: %w", err)
+	}
+
+	url := "https://scrum.azed.kz/analyze-transcription"
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return nil, fmt.Errorf("failed to send to analyze endpoint: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("analyze endpoint returned status: %d", resp.StatusCode)
+	}
+
+	var analyzeResp AnalyzeResponse
+	if err := json.NewDecoder(resp.Body).Decode(&analyzeResp); err != nil {
+		return nil, fmt.Errorf("failed to decode analyze response: %w", err)
+	}
+
+	return &analyzeResp, nil
+}
+
+func sendAnalysisToTelegram(text string, targetChatID string) error {
+	message := fmt.Sprintf("<b>🤖 AI Analysis</b>\n\n%s", escapeHTML(text))
+
+	telegramMsg := TelegramMessage{
+		ChatID:    targetChatID,
+		Text:      message,
+		ParseMode: "HTML",
+	}
+
+	jsonData, err := json.Marshal(telegramMsg)
+	if err != nil {
+		return fmt.Errorf("failed to marshal telegram message: %w", err)
+	}
+
+	url := fmt.Sprintf("https://api.telegram.org/bot%s/sendMessage", telegramToken)
+	resp, err := http.Post(url, "application/json", bytes.NewBuffer(jsonData))
+	if err != nil {
+		return fmt.Errorf("failed to send telegram message: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("telegram API returned status: %d", resp.StatusCode)
+	}
+
+	return nil
 }
