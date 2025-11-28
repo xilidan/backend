@@ -63,10 +63,6 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - AZURE_OPENAI_ENDPOINT=${AZURE_OPENAI_ENDPOINT}
-      - AZURE_OPENAI_API_KEY=${AZURE_OPENAI_API_KEY}
-      - AZURE_OPENAI_DEPLOYMENT_NAME=${AZURE_OPENAI_DEPLOYMENT_NAME}
-      - API_VERSION=${API_VERSION}
       - BACKEND_API_URL=${BACKEND_API_URL:-https://api.azed.kz/api/v1}
     env_file:
       - ./services/scrum/.env
