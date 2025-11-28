@@ -57,9 +57,19 @@ type SpeakerBlock struct {
 	Words     string  `json:"words"`
 }
 
+type Response struct {
+	Message string
+}
+
 func (h *Handler) Webhook(w http.ResponseWriter, r *http.Request) {
 	req := &Request{}
 	json.ParseJSON(r, req)
 
 	fmt.Printf("request: %v", req)
+
+	response := &Response{
+		Message: "test",
+	}
+
+	json.WriteJSON(w, http.StatusOK, response)
 }

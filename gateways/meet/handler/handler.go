@@ -49,6 +49,7 @@ type GetTranscriptionResponse struct {
 func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	h.log.Debug("registering HTTP routes")
 	mux.HandleFunc("POST /api/v1/meetings/start", h.StartMeeting)
+	h.log.Debug("registering HTTP routes")
 	mux.HandleFunc("POST /api/v1/webhook", h.Webhook)
 	h.log.Debug("registered route: POST /api/v1/meetings/start")
 	mux.HandleFunc("POST /api/v1/meetings/{bot_id}/stop", h.StopMeeting)
