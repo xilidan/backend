@@ -1,6 +1,6 @@
 import io
 import json
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Optional
 from fastapi import UploadFile
 import docx
 import pypdf
@@ -1144,7 +1144,7 @@ class JiraScrumMasterService:
             print(f"Error syncing Jira data: {e}")
             return 0
 
-    async def chat(self, message: str, session_id: str, file: UploadFile = None):
+    async def chat(self, message: str, session_id: str, file: UploadFile = None, authorization: str = None):
         """
         Stream chat response.
         """
@@ -1152,17 +1152,41 @@ class JiraScrumMasterService:
         file_context = ""
         if file:
             try:
-                file_content = await self.parse_file(file)
-                # Decompose or summarize file content
-                # For chat, maybe we just want the text content or a summary
-                if self.count_tokens(file_content) > 5000:
-                    file_summary = await self.summarize_text(file_content)
-                    file_context = f"Uploaded File Summary:\n{file_summary}\n"
+                # Recreate decompose logic if authorization is present
+                if authorization:
+                    # Parse
+                    text = await self.parse_file(file)
+                    
+                    # Token
+                    token = authorization.split(" ")[1] if " " in authorization else authorization
+                    
+                    # Org Info
+                    organization = await self.get_organization_info(token)
+                    
+                    # Decompose
+                    tasks = await self.decompose_tasks(text)
+                    
+                    # Assign
+                    assigned_tasks = self.assign_tasks(tasks, organization)
+                    
+                    # Create
+                    final_tasks = await self.create_jira_tasks(assigned_tasks, token)
+                    
+                    # Format result for context
+                    task_summary = "\n".join([f"- {t.get('jira_key')} {t.get('summary')}" for t in final_tasks])
+                    file_context = f"Uploaded File Processed. Created Jira Tasks:\n{task_summary}\n"
                 else:
-                    file_context = f"Uploaded File Content:\n{file_content}\n"
+                     # Fallback to simple summary if no auth (shouldn't happen if main.py enforces it, but good safety)
+                    file_content = await self.parse_file(file)
+                    if self.count_tokens(file_content) > 5000:
+                        file_summary = await self.summarize_text(file_content)
+                        file_context = f"Uploaded File Summary:\n{file_summary}\n"
+                    else:
+                        file_context = f"Uploaded File Content:\n{file_content}\n"
+
             except Exception as e:
-                print(f"Error parsing file: {e}")
-                file_context = "Error parsing uploaded file.\n"
+                print(f"Error processing file: {e}")
+                file_context = f"Error processing uploaded file: {e}\n"
 
         # 2. Get Chat History
         history = await self.mongo_client.get_chat_history(session_id)
