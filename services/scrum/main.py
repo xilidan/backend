@@ -107,7 +107,7 @@ async def chat(
     authorization: Optional[str] = Header(None)
 ):
     try:
-        return StreamingResponse(service.chat(message, session_id, file, authorization), media_type="text/plain")
+        return StreamingResponse(service.chat(message, session_id, file, authorization), media_type="text/event-stream")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
