@@ -99,10 +99,11 @@ async def analyze_transcription(request: TranscriptionRequest):
 async def chat(
     message: str = Form(...),
     session_id: str = Form(...),
-    file: UploadFile = File(None)
+    file: UploadFile = File(None),
+    authorization: Optional[str] = Header(None)
 ):
     try:
-        return StreamingResponse(service.chat(message, session_id, file), media_type="text/plain")
+        return StreamingResponse(service.chat(message, session_id, file, authorization), media_type="text/plain")
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
