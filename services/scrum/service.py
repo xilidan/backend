@@ -11,6 +11,7 @@ from config import settings
 
 import tiktoken
 from rating_service import RatingService
+from mongo_client import MongoClient
 
 class JiraScrumMasterService:
     def __init__(self):
@@ -20,6 +21,7 @@ class JiraScrumMasterService:
             api_version=settings.API_VERSION
         )
         self.rating_service = RatingService()
+        self.mongo_client = MongoClient()
 
     async def parse_file(self, file: UploadFile) -> str:
         content = await file.read()
@@ -1081,3 +1083,104 @@ class JiraScrumMasterService:
         result_text = response.choices[0].message.content
         clean = result_text.replace("```html", "").replace("```", "").strip()
         return {"text": clean}
+
+    async def sync_jira_data(self):
+        """Fetch issues from Jira and cache them in MongoDB."""
+        print("Syncing Jira data...")
+        # Fetch more issues for caching
+        jira_url = f"{settings.JIRA_API_URL}/issues?limit=100" 
+        try:
+            response = requests.get(jira_url, headers={"accept": "application/json"}, timeout=10)
+            response.raise_for_status()
+            data = response.json()
+            issues = data.get("issues", [])
+            
+            # Transform for cache if needed, or store raw
+            # We want to store key, summary, description, status, assignee
+            cached_issues = []
+            for issue in issues:
+                fields = issue.get("fields") or {}
+                status = fields.get("status") or {}
+                assignee = fields.get("assignee") or {}
+                
+                cached_issues.append({
+                    "key": issue.get("key"),
+                    "summary": fields.get("summary"),
+                    "description": fields.get("description"),
+                    "status": status.get("name"),
+                    "assignee": assignee.get("displayName"),
+                    "updated": fields.get("updated")
+                })
+            
+            await self.mongo_client.cache_jira_issues(cached_issues)
+            print(f"Synced {len(cached_issues)} issues to MongoDB.")
+            return len(cached_issues)
+        except Exception as e:
+            print(f"Error syncing Jira data: {e}")
+            return 0
+
+    async def chat(self, message: str, session_id: str, file: UploadFile = None):
+        """
+        Stream chat response.
+        """
+        # 1. Parse file if provided
+        file_context = ""
+        if file:
+            try:
+                file_content = await self.parse_file(file)
+                # Decompose or summarize file content
+                # For chat, maybe we just want the text content or a summary
+                if self.count_tokens(file_content) > 5000:
+                    file_summary = await self.summarize_text(file_content)
+                    file_context = f"Uploaded File Summary:\n{file_summary}\n"
+                else:
+                    file_context = f"Uploaded File Content:\n{file_content}\n"
+            except Exception as e:
+                print(f"Error parsing file: {e}")
+                file_context = "Error parsing uploaded file.\n"
+
+        # 2. Get Chat History
+        history = await self.mongo_client.get_chat_history(session_id)
+        
+        # 3. Get Cached Jira Context
+        cached_issues = await self.mongo_client.get_cached_issues(limit=20)
+        jira_context = "Relevant Jira Issues:\n"
+        for issue in cached_issues:
+            jira_context += f"- [{issue['key']}] {issue['summary']} ({issue['status']})\n"
+
+        # 4. Construct Prompt
+        system_prompt = """You are an expert Scrum Master assistant. 
+        Use the provided Jira context and file content to answer the user's questions.
+        If the user asks to create tasks, guide them on how to structure the request or use the decompose feature.
+        Always be helpful, concise, and professional.
+        """
+        
+        messages = [{"role": "system", "content": system_prompt}]
+        
+        # Add history
+        for msg in history:
+            messages.append({"role": msg["role"], "content": msg["content"]})
+            
+        # Add current context and message
+        user_content = f"{jira_context}\n\n{file_context}\n\nUser Question: {message}"
+        messages.append({"role": "user", "content": user_content})
+
+        # 5. Stream Response
+        response = await self.client.chat.completions.create(
+            model=settings.AZURE_OPENAI_DEPLOYMENT_NAME,
+            messages=messages,
+            stream=True
+        )
+
+        full_response = ""
+        async for chunk in response:
+            if chunk.choices and chunk.choices[0].delta.content:
+                content = chunk.choices[0].delta.content
+                full_response += content
+                yield content
+
+        # 6. Save to History (User message and Assistant response)
+        # Note: We save the raw user message, not the one with context injected, to keep history clean?
+        # Or maybe we want context? Usually just the user message.
+        await self.mongo_client.save_message(session_id, "user", message)
+        await self.mongo_client.save_message(session_id, "assistant", full_response)
