@@ -1,6 +1,8 @@
 from fastapi import FastAPI, UploadFile, File, HTTPException, Header
 from service import JiraScrumMasterService
 from typing import List, Dict, Any, Optional
+from pydantic import BaseModel
+from datetime import datetime as DateTime
 
 app = FastAPI(title="Jira AI Scrum Master")
 service = JiraScrumMasterService()
@@ -37,6 +39,67 @@ async def decompose_document(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+class Person(BaseModel):
+    name: str
+    email: Optional[str] = None
+
+class ActionItem(BaseModel):
+    text: str
+
+class KeyQuestion(BaseModel):
+    text: str
+
+class Topic(BaseModel):
+    text: str
+
+class ChapterSummary(BaseModel):
+    title: str
+    description: str
+    topics: List[Topic]
+
+class Speaker(BaseModel):
+    name: str
+
+class SpeakerBlock(BaseModel):
+    start_time: str
+    end_time: str
+    speaker: Speaker
+    words: str
+
+class Transcript(BaseModel):
+    speakers: List[Speaker]
+    speaker_blocks: List[SpeakerBlock]
+
+class TranscriptionRequest(BaseModel):
+    session_id: str
+    trigger: str
+    title: str
+    start_time: DateTime
+    end_time: DateTime
+    participants: List[Person]
+    owner: Person
+    summary: str
+    action_items: List[ActionItem]
+    key_questions: List[KeyQuestion]
+    topics: List[Topic]
+    report_url: str
+    chapter_summaries: List[ChapterSummary]
+    transcript: Transcript
+
+@app.post("/analyze-transcription")
+async def analyze_transcription(request: TranscriptionRequest):
+    try:
+        result = await service.analyze_transcription(request)
+        return result
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
+
+
+
+
+
+

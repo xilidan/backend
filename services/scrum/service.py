@@ -4,6 +4,8 @@ from typing import List, Dict, Any
 from fastapi import UploadFile
 import docx
 import pypdf
+import requests
+
 from openai import AsyncAzureOpenAI
 from config import settings
 
@@ -318,3 +320,93 @@ class JiraScrumMasterService:
             return item
 
         return [mock_create(task) for task in tasks]
+
+    async def analyze_transcription(self, request) -> Dict[str, str]:
+        
+        jira_url = "https://jira.azed.kz/api/jira/issues?limit=100"
+        print(f"Fetching Jira issues from {jira_url}...")
+        
+        try:
+            response = requests.get(jira_url, headers={"accept": "application/json"}, timeout=10)
+            response.raise_for_status()
+            jira_data = response.json()
+            issues = jira_data.get("issues", [])
+            print(f"Fetched {len(issues)} issues from Jira.")
+        except requests.RequestException as e:
+            print(f"Error fetching Jira issues: {e}")
+            issues = []
+
+        issues_context = ""
+        for issue in issues:
+            key = issue.get("key", "UNKNOWN")
+            fields = issue.get("fields", {})
+            summary = fields.get("summary", "No summary")
+            description = fields.get("description", "No description")
+            status = fields.get("status", {}).get("name", "Unknown")
+            
+            issues_context += f"- [{key}] {summary} (Status: {status})\n"
+            if description:
+                issues_context += f"  Description: {str(description)[:200]}...\n"
+
+        transcription_text = ""
+        for block in request.transcript.speaker_blocks:
+            transcription_text += f"{block.speaker.name}: {block.words}\n"
+
+        meeting_context = f"""
+        Meeting: {request.title}
+        Time: {request.start_time} - {request.end_time}
+        Participants: {', '.join([p.name for p in request.participants])}
+        
+        Summary: {request.summary}
+        
+        Action Items:
+        {chr(10).join([f"- {item.text}" for item in request.action_items])}
+        
+        Key Questions:
+        {chr(10).join([f"- {q.text}" for q in request.key_questions])}
+        
+        Topics:
+        {chr(10).join([f"- {t.text}" for t in request.topics])}
+        
+        Chapter Summaries:
+        {chr(10).join([f"- {ch.title}: {ch.description}" for ch in request.chapter_summaries])}
+        """
+
+        prompt = f"""
+        You are an expert Project Manager and Scrum Master.
+        
+        I have a transcription of a meeting and a list of existing Jira issues.
+        Your goal is to identify important questions or topics that were NOT discussed in the meeting but are relevant to the existing issues or the project context implied by the transcription.
+        
+        Existing Jira Issues:
+        {issues_context[:20000]}
+        
+        Meeting Context:
+        {meeting_context[:10000]}
+        
+        Full Transcript:
+        {transcription_text[:20000]}
+        
+        Instructions:
+        1. Analyze the transcription to understand what was discussed.
+        2. Cross-reference with the existing Jira issues.
+        3. Identify gaps: What critical details, risks, or requirements related to the issues (or new topics mentioned) were missed?
+        4. Generate a list of important questions to ask the team.
+        
+        Output Format:
+        Return the response in Markdown format.
+
+        """
+
+        response = await self.client.chat.completions.create(
+            model=settings.AZURE_OPENAI_DEPLOYMENT_NAME,
+            messages=[
+                {"role": "system", "content": "You are a helpful technical assistant."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        
+        result_text = response.choices[0].message.content
+        clean = result_text.replace("```markdown", "").replace("```", "").strip()
+        return {"text": clean}
+
