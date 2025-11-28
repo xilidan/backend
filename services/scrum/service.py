@@ -668,78 +668,103 @@ class JiraScrumMasterService:
 
     async def analyze_transcription(self, request) -> Dict[str, str]:
         
-        jira_url = "https://jira.azed.kz/api/jira/issues?sort=deadline&limit=10"
+        jira_url = f"{settings.JIRA_API_URL}/issues?sort=deadline&limit=10"
         print(f"Fetching Jira issues from {jira_url}...")
         
         try:
-                # 1. Create the main item (Epic or Task)
-                summary = item.get('summary', 'Untitled')
-                item_type = item.get('type', 'Task')
-                assignee_email = item.get('assignee_email')
-                
-                jira_res = None
-                due_date = item.get('due_date')  # Get due_date if present
-                
-                if item_type == 'Epic':
-                    jira_res = await self.create_epic(summary, token)
-                else:
-                    # Story or Task
-                    jira_res = await self.create_task(summary, assignee_email=assignee_email, due_date=due_date, token=token)
-                    # Collect issue keys for sprint assignment (non-Epics only)
-                    if jira_res and jira_res.get('key'):
-                        created_issue_keys.append(jira_res.get('key'))
-                
-                if jira_res:
-                    item['jira_key'] = jira_res.get('key')
-                    item['jira_id'] = jira_res.get('id')
-                    item['jira_link'] = jira_res.get('self')
-                
-                # 2. Process Stories (if this is an Epic)
-                if 'stories' in item:
-                    for story in item['stories']:
-                        story_summary = story.get('summary', 'Untitled Story')
-                        story_assignee = story.get('assignee_email')
-                        
-                        # Create Story/Task
-                        story_due_date = story.get('due_date')
-                        story_res = await self.create_task(story_summary, assignee_email=story_assignee, due_date=story_due_date, token=token)
-                        
-                        # Collect story keys for sprint assignment
-                        if story_res and story_res.get('key'):
-                            created_issue_keys.append(story_res.get('key'))
-                        
-                        story['jira_key'] = story_res.get('key')
-                        story['jira_id'] = story_res.get('id')
-                        story['jira_link'] = story_res.get('self')
-                        
-                        # 3. Process Subtasks for this Story
-                        if 'subtasks' in story:
-                            for subtask in story['subtasks']:
-                                sub_summary = subtask.get('summary', 'Untitled Subtask')
-                                await self.create_subtask(sub_summary, parent_key=story_res.get('key'), token=token)
-                
-                # 3. Process Subtasks (if this item has direct subtasks)
-                if 'subtasks' in item and item_type != 'Epic':
-                     for subtask in item['subtasks']:
-                        sub_summary = subtask.get('summary', 'Untitled Subtask')
-                        # Only create subtask if we have a parent key
-                        if item.get('jira_key'):
-                            await self.create_subtask(sub_summary, parent_key=item['jira_key'], token=token)
-                            
-                created_items.append(item)
-                
-        except Exception as e:
-                print(f"❌ ERROR processing item {item.get('summary')}: {str(e)}")
-                
-                
-        # Move all created issues to active sprint
-        if active_sprint_id and created_issue_keys:
-            print(f"\n[INFO] Moving {len(created_issue_keys)} issues to sprint {active_sprint_id}...")
-            await self.move_issues_to_sprint(active_sprint_id, created_issue_keys, token)
+            response = requests.get(jira_url, headers={"accept": "application/json"}, timeout=10)
+            response.raise_for_status()
+            jira_data = response.json()
+            issues = jira_data.get("issues", [])
+            print(f"Fetched {len(issues)} issues from Jira.")
+        except requests.RequestException as e:
+            print(f"Error fetching Jira issues: {e}")
+            issues = []
+
+        issues_context = ""
+        for issue in issues:
+            key = issue.get("key", "UNKNOWN")
+            fields = issue.get("fields") or {}
+            summary = fields.get("summary", "No summary")
+            description = fields.get("description", "No description")
+            status = fields.get("status", {}).get("name", "Unknown")
+            
+            issues_context += f"- [{key}] {summary} (Status: {status})\n"
+            if description:
+                issues_context += f"  Description: {str(description)[:200]}...\n"
+
+        transcription_text = ""
+        for block in request.transcript.speaker_blocks:
+            transcription_text += f"{block.speaker.name}: {block.words}\n"
+
+        meeting_context = f"""
+        Meeting: {request.title}
+        Time: {request.start_time} - {request.end_time}
+        Participants: {', '.join([p.name for p in request.participants])}
         
-        print("\n" + "="*80)
+        Summary: {request.summary}
         
-        return created_items
+        Action Items:
+        {chr(10).join([f"- {item.text}" for item in request.action_items])}
+        
+        Key Questions:
+        {chr(10).join([f"- {q.text}" for q in request.key_questions])}
+        
+        Topics:
+        {chr(10).join([f"- {t.text}" for t in request.topics])}
+        
+        Chapter Summaries:
+        {chr(10).join([f"- {ch.title}: {ch.description}" for ch in request.chapter_summaries])}
+        """
+
+        prompt = f"""
+        You are an expert Project Manager and Scrum Master.
+        
+        I have a transcription of a meeting and a list of existing Jira issues.
+        Your goal is to identify important questions or topics that were NOT discussed in the meeting but are relevant to the existing issues or the project context implied by the transcription.
+        
+        CRITICAL: Detect the language used in the meeting transcript and respond in that EXACT SAME LANGUAGE. If the transcript is in Russian, respond in Russian. If in English, respond in English.
+        
+        Existing Jira Issues:
+        {issues_context[:20000]}
+        
+        Meeting Context:
+        {meeting_context[:10000]}
+        
+        Full Transcript:
+        {transcription_text[:20000]}
+        
+        Instructions:
+        1. Analyze the transcription to understand what was discussed.
+        2. Cross-reference with the existing Jira issues.
+        3. Identify gaps: What critical details, risks, or requirements related to the issues (or new topics mentioned) were missed?
+        4. Generate a list of important questions to ask the team.
+        
+        Output Format:
+        Return ONLY valid HTML content formatted for Telegram's HTML parser. Use these tags ONLY:
+        - <b>text</b> for bold
+        - <i>text</i> for italic
+        - <u>text</u> for underline
+        - <s>text</s> for strikethrough
+        - <code>text</code> for inline code
+        - <pre>text</pre> for code blocks
+        - <a href="url">text</a> for links
+        
+        Structure your response with proper headings using <b> tags and organize questions in a clear list format.
+        Do NOT use markdown, do NOT wrap in code blocks, return ONLY the HTML content.
+        """
+
+        response = await self.client.chat.completions.create(
+            model=settings.AZURE_OPENAI_DEPLOYMENT_NAME,
+            messages=[
+                {"role": "system", "content": "You are a helpful technical assistant that outputs valid HTML."},
+                {"role": "user", "content": prompt}
+            ]
+        )
+        
+        result_text = response.choices[0].message.content
+        clean = result_text.replace("```html", "").replace("```", "").strip()
+        return {"text": clean}
 
     async def create_epic(self, summary: str, token: str) -> Dict[str, Any]:
         """
