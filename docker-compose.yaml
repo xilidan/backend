@@ -16,6 +16,24 @@ services:
     depends_on:
       - sso-service
 
+  meet-gateway:
+    build:
+      context: .
+      dockerfile: ./deploy/meet/Dockerfile
+    container_name: meet-gateway
+    ports:
+      - "8096:8080"
+    restart: unless-stopped
+    networks:
+      - app-network
+    environment:
+      - PORT=8080
+      - FIREFLIES_API_KEY=${FIREFLIES_API_KEY}
+      - SCRUM_URL=scrum-ai-service
+      - SCRUM_PORT=8000
+    depends_on:
+      - scrum-ai-service
+
   sso-service:
     build:
       context: .
@@ -50,7 +68,7 @@ services:
     volumes:
       - sso-db-data:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U sso_user -d sso_db"]
+      test: [ "CMD-SHELL", "pg_isready -U sso_user -d sso_db" ]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -75,7 +93,7 @@ services:
       - /app/venv
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8000/docs"]
+      test: [ "CMD", "curl", "-f", "http://localhost:8000/docs" ]
       interval: 30s
       timeout: 10s
       retries: 3
@@ -133,7 +151,7 @@ services:
     volumes:
       - codereview-redis-data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: [ "CMD", "redis-cli", "ping" ]
       interval: 10s
       timeout: 3s
       retries: 3
