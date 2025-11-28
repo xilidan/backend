@@ -323,7 +323,7 @@ class JiraScrumMasterService:
 
     async def analyze_transcription(self, request) -> Dict[str, str]:
         
-        jira_url = "https://jira.azed.kz/api/jira/issues?limit=100"
+        jira_url = "https://jira.azed.kz/api/jira/issues?sort=deadline&limit=10"
         print(f"Fetching Jira issues from {jira_url}...")
         
         try:
