@@ -51,6 +51,7 @@ func (h *Handler) RegisterRoutes(mux *http.ServeMux) {
 	mux.HandleFunc("POST /api/v1/meetings/start", h.StartMeeting)
 	h.log.Debug("registering HTTP routes")
 	mux.HandleFunc("POST /api/v1/webhook", h.Webhook)
+	mux.HandleFunc("POST /api/v1/get", h.GetChatID)
 	h.log.Debug("registered route: POST /api/v1/meetings/start")
 	mux.HandleFunc("POST /api/v1/meetings/{bot_id}/stop", h.StopMeeting)
 	h.log.Debug("registered route: POST /api/v1/meetings/{bot_id}/stop")
